@@ -6,3 +6,12 @@ class Entrega:
         self.hora_entrega = hora_entrega
         self.estado = estado
         self.ubicacion_actual = ubicacion_actual
+
+    def iniciar_entrega(self):
+        self.estado = "En camino"
+
+    def actualizar_ubicacion(self, nueva_ubicacion):
+        self.ubicacion_actual = nueva_ubicacion
+
+    def finalizar_entrega(self):
+        self.estado = "Entregado"

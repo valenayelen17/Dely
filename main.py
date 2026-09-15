@@ -46,6 +46,17 @@ detalle = DetallePedido(
     producto.precio
 )
 
+entrega = Entrega(
+    1,
+    "15/09/2026",
+    "20:30",
+    "Pendiente",
+    "Comercio"
+)
+
+entrega.iniciar_entrega()
+entrega.actualizar_ubicacion("Av. Siempre Viva 100")
+
 pedido.agregar_detalle(detalle)
 pedido.asignar_repartidor(repartidor)
 
@@ -58,6 +69,8 @@ print("Pedido:", pedido.id_pedido)
 print("Dirección:", pedido.direccion_entrega)
 print("Estado:", pedido.estado)
 print("Repartidor:", pedido.repartidor.nombre, pedido.repartidor.apellido)
+print("Estado de entrega:", entrega.estado)
+print("Ubicación actual:", entrega.ubicacion_actual)
 print("Producto:", producto.nombre)
 print("Cantidad:", detalle.cantidad)
 print("Subtotal: $", detalle.calcular_subtotal())
