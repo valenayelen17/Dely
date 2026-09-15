@@ -6,3 +6,7 @@ class Repartidor:
         self.apellido = apellido
         self.telefono = telefono
         self.zona = zona
+        self.disponible = True
+
+    def cambiar_disponibilidad(self):
+        self.disponible = not self.disponible
