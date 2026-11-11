@@ -58,9 +58,7 @@ def eliminar_cliente(cliente_id: int, db: Session = Depends(get_db)):
     cliente = db.get(Cliente, cliente_id)
     if cliente is None:
         raise HTTPException(404, "Cliente no encontrado.")
+    if cliente.pedidos:
+        raise HTTPException(409, "No se puede eliminar: el cliente tiene pedidos asociados.")
     db.delete(cliente)
-    try:
-        db.commit()
-    except IntegrityError as error:
-        db.rollback()
-        raise HTTPException(409, "No se puede eliminar: el cliente tiene pedidos asociados.") from error
+    db.commit()
