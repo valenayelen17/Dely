@@ -2,7 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from errores import Conflicto, DatoInvalido, NoEncontrado
-from estados import EstadoEntrega, EstadoPedido
+from estados import PEDIDOS_FINALIZADOS, EstadoEntrega, EstadoPedido
 from models import Cliente, Comercio, DetallePedido, Entrega, Pedido, Producto, Repartidor
 from schemas import PedidoCreate, PedidoUpdate
 
@@ -101,9 +101,28 @@ def asignar_repartidor(db: Session, pedido_id: int, repartidor_id: int) -> Pedid
     return obtener_pedido(db, pedido_id)
 
 
-def eliminar_pedido(db: Session, pedido_id: int) -> None:
-    pedido = obtener_pedido(db, pedido_id)
+def devolver_stock(pedido: Pedido) -> None:
     for detalle in pedido.detalles:
         detalle.producto.stock += detalle.cantidad
+
+
+def cancelar_pedido(db: Session, pedido_id: int) -> Pedido:
+    pedido = obtener_pedido(db, pedido_id)
+    if pedido.estado in PEDIDOS_FINALIZADOS:
+        raise Conflicto(f"El pedido ya está {pedido.estado.lower()}.")
+    devolver_stock(pedido)
+    pedido.estado = EstadoPedido.CANCELADO
+    if pedido.entrega is not None:
+        pedido.entrega.estado = EstadoEntrega.CANCELADA
+    db.commit()
+    return obtener_pedido(db, pedido_id)
+
+
+def eliminar_pedido(db: Session, pedido_id: int) -> None:
+    pedido = obtener_pedido(db, pedido_id)
+    if pedido.estado not in {EstadoPedido.PENDIENTE, EstadoPedido.CANCELADO}:
+        raise Conflicto("Solo se eliminan pedidos pendientes o cancelados; el resto queda como registro.")
+    if pedido.estado == EstadoPedido.PENDIENTE:
+        devolver_stock(pedido)
     db.delete(pedido)
     db.commit()

@@ -65,6 +65,11 @@ def asignar_repartidor(pedido_id: int, datos: PedidoAsignacion, db: Session = De
     return servicio.asignar_repartidor(db, pedido_id, datos.repartidor_id)
 
 
+@router.patch("/{pedido_id}/cancelar", response_model=PedidoOut)
+def cancelar_pedido(pedido_id: int, db: Session = Depends(get_db)):
+    return servicio.cancelar_pedido(db, pedido_id)
+
+
 @router.delete("/{pedido_id}", status_code=status.HTTP_204_NO_CONTENT)
 def eliminar_pedido(pedido_id: int, db: Session = Depends(get_db)):
     servicio.eliminar_pedido(db, pedido_id)
