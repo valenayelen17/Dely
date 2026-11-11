@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import Repartidor
 from routers.comercios import buscar_comercio
-from schemas import RepartidorCreate, RepartidorDisponibilidad, RepartidorOut, RepartidorUpdate
+from schemas import EntregaDetalle, RepartidorCreate, RepartidorDisponibilidad, RepartidorOut, RepartidorUpdate
+from services import entregas as servicio_entregas
 
 router = APIRouter(prefix="/api/repartidores", tags=["Repartidores"])
 
@@ -38,6 +39,11 @@ def listar_repartidores(
 @router.get("/{repartidor_id}", response_model=RepartidorOut)
 def obtener_repartidor(repartidor_id: int, db: Session = Depends(get_db)):
     return buscar_repartidor(db, repartidor_id)
+
+
+@router.get("/{repartidor_id}/entregas", response_model=list[EntregaDetalle])
+def entregas_del_repartidor(repartidor_id: int, activas: bool = True, db: Session = Depends(get_db)):
+    return servicio_entregas.entregas_de_repartidor(db, repartidor_id, activas)
 
 
 @router.post("/", response_model=RepartidorOut, status_code=status.HTTP_201_CREATED)

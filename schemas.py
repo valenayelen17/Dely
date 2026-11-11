@@ -155,6 +155,30 @@ class EntregaOut(Schema):
     hora_entrega: time | None
 
 
+class EntregaEstado(Schema):
+    estado: EstadoEntrega
+    ubicacion_actual: str | None = Field(default=None, min_length=2, max_length=255)
+
+
+class EntregaUbicacion(Schema):
+    ubicacion_actual: str = Field(min_length=2, max_length=255)
+
+
+class PedidoDeEntrega(Schema):
+    id_pedido: int
+    direccion_entrega: str
+    zona: str
+    estado: EstadoPedido
+    horario_estimado: time
+    cliente: ClienteResumen
+    detalles: list[DetalleOut]
+    total: Decimal
+
+
+class EntregaDetalle(EntregaOut):
+    pedido: PedidoDeEntrega
+
+
 class PedidoOut(Schema):
     id_pedido: int
     fecha_pedido: date
