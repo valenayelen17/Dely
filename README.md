@@ -34,6 +34,8 @@ cd frontend
 npm run dev
 ```
 
+Para la demo conviene abrir tres ventanas: <http://localhost:5173/comercio>, <http://localhost:5173/repartidor> y <http://localhost:5173/seguimiento>.
+
 La preparación inicial (entorno virtual, `.env`, datos de demo y tests) está en [backend/README.md](backend/README.md) y [frontend/README.md](frontend/README.md).
 
 ## Historias de usuario

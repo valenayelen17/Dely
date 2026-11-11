@@ -13,8 +13,10 @@ export function Logo({ tamano = 20, conPunto = true }: Props) {
       <span className="logo-mark" style={{ width: marca, height: marca }}>
         <Icono nombre="logo" tamano={tamano > 20 ? 'lg' : 'md'} />
       </span>
-      DELY
-      {conPunto && <span className="logo-dot">.</span>}
+      <span>
+        DELY
+        {conPunto && <span className="logo-dot">.</span>}
+      </span>
     </Link>
   )
 }
