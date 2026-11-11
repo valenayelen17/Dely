@@ -144,7 +144,7 @@ sequenceDiagram
     R->>API: Marca "Llegando"
     API-->>C: Aviso de llegada (HU-05)
     R->>API: Marca "Entregada"
-    API->>DB: Registra fecha y hora real; el pedido pasa a Entregado
+    API->>DB: Registra fecha y hora real, el pedido pasa a Entregado
     API-->>C: Notificación "Entregado"
 ```
 
