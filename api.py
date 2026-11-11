@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-import models  # noqa: F401  Registra las tablas ORM antes de inicializarlas.
+import models  # noqa: F401
 from database import Base, crear_base_si_no_existe, engine
 from errores import registrar_manejadores
 from routers.clientes import router as clientes_router

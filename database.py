@@ -1,8 +1,3 @@
-"""Conexión y sesiones de SQLAlchemy.
-
-En producción se usa MySQL (mysql+pymysql). Los tests usan SQLite en memoria.
-"""
-
 import os
 from collections.abc import Generator
 from pathlib import Path
@@ -32,7 +27,6 @@ if not ES_SQLITE:
 
 
 def crear_engine(url) -> Engine:
-    """Crea un engine; SQLite en memoria comparte una única conexión."""
     url = make_url(url)
     if url.get_backend_name() == "sqlite":
         nuevo = create_engine(
@@ -49,7 +43,7 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
 class Base(DeclarativeBase):
-    """Base declarativa común de los modelos."""
+    pass
 
 
 def crear_base_si_no_existe() -> None:
