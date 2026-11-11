@@ -14,3 +14,6 @@ __pycache__/
 
 # Tests
 .pytest_cache/
+
+# Dumps de base de datos (la consigna pide no subirlos)
+*.sql

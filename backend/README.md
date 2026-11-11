@@ -1,10 +1,11 @@
-# API de DELY
+# DELY — Backend (API)
 
 ## Preparar y ejecutar
 
-Requiere Python 3.11 o superior y MySQL.
+Requiere Python 3.11 o superior y MySQL. Todos los comandos se corren desde `backend/`.
 
 ```powershell
+cd backend
 py -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 Copy-Item .env.example .env
