@@ -78,7 +78,7 @@ export interface Pedido {
 }
 
 export interface EntregaDetalle extends Entrega {
-  pedido: Pick<Pedido, 'id_pedido' | 'direccion_entrega' | 'zona' | 'estado' | 'horario_estimado' | 'cliente' | 'detalles' | 'total'>
+  pedido: Pick<Pedido, 'id_pedido' | 'codigo_seguimiento' | 'direccion_entrega' | 'zona' | 'estado' | 'horario_estimado' | 'cliente' | 'detalles' | 'total'>
 }
 
 export interface Notificacion {

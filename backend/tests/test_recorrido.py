@@ -20,6 +20,7 @@ def test_repartidor_ve_sus_entregas_activas_con_datos_del_cliente(client, base, 
     assert [e["id_entrega"] for e in entregas] == [entrega["id_entrega"]]
     assert entregas[0]["pedido"]["cliente"]["telefono"] == base["cliente"]["telefono"]
     assert entregas[0]["pedido"]["direccion_entrega"] == base["cliente"]["direccion"]
+    assert len(entregas[0]["pedido"]["codigo_seguimiento"]) == 8
 
 
 def test_repartidor_marca_en_camino_y_el_pedido_se_actualiza(client, entrega):
