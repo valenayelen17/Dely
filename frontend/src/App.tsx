@@ -8,6 +8,9 @@ import { NuevoPedido } from './vistas/encargado/NuevoPedido'
 import { Pendientes } from './vistas/encargado/Pendientes'
 import { Productos } from './vistas/encargado/Productos'
 import { Repartidores } from './vistas/encargado/Repartidores'
+import { DetalleEntrega } from './vistas/repartidor/DetalleEntrega'
+import { MisEntregas } from './vistas/repartidor/MisEntregas'
+import { QuienSos } from './vistas/repartidor/QuienSos'
 
 function App() {
   return (
@@ -23,6 +26,9 @@ function App() {
             <Route path="clientes" element={<Clientes />} />
             <Route path="historial" element={<Historial />} />
           </Route>
+          <Route path="/repartidor" element={<QuienSos />} />
+          <Route path="/repartidor/:repartidorId" element={<MisEntregas />} />
+          <Route path="/repartidor/:repartidorId/entregas/:entregaId" element={<DetalleEntrega />} />
           <Route path="*" element={<Inicio />} />
         </Routes>
       </BrowserRouter>
