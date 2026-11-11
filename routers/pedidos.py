@@ -4,6 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from database import get_db
+from routers.comercios import buscar_comercio
 from models import Cliente, DetallePedido, Pedido, Producto, Repartidor
 from schemas import PedidoAsignacion, PedidoCreate, PedidoEstado, PedidoOut, PedidoUpdate
 
@@ -37,6 +38,7 @@ def obtener_pedido(pedido_id: int, db: Session = Depends(get_db)):
 
 @router.post("/", response_model=PedidoOut, status_code=status.HTTP_201_CREATED)
 def crear_pedido(datos: PedidoCreate, db: Session = Depends(get_db)):
+    buscar_comercio(db, datos.comercio_id)
     if db.get(Cliente, datos.cliente_id) is None:
         raise HTTPException(404, "Cliente no encontrado.")
     if len({item.producto_id for item in datos.detalles}) != len(datos.detalles):
@@ -48,12 +50,15 @@ def crear_pedido(datos: PedidoCreate, db: Session = Depends(get_db)):
         zona=datos.zona,
         horario_estimado=datos.horario_estimado,
         cliente_id=datos.cliente_id,
+        comercio_id=datos.comercio_id,
         estado="Pendiente",
     )
     for item in datos.detalles:
         producto = db.get(Producto, item.producto_id)
         if producto is None:
             raise HTTPException(404, f"Producto {item.producto_id} no encontrado.")
+        if producto.comercio_id != pedido.comercio_id:
+            raise HTTPException(422, f"El producto {producto.nombre} no pertenece al comercio del pedido.")
         if producto.stock < item.cantidad:
             raise HTTPException(409, f"Stock insuficiente para {producto.nombre}.")
         producto.stock -= item.cantidad
@@ -109,6 +114,8 @@ def asignar_repartidor(pedido_id: int, datos: PedidoAsignacion, db: Session = De
         raise HTTPException(404, "Repartidor no encontrado.")
     if not repartidor.disponible:
         raise HTTPException(409, "El repartidor no está disponible.")
+    if repartidor.comercio_id != pedido.comercio_id:
+        raise HTTPException(409, "El repartidor no pertenece al comercio del pedido.")
     if repartidor.zona.casefold() != pedido.zona.casefold():
         raise HTTPException(409, "El repartidor no cubre la zona de entrega del pedido.")
     pedido.repartidor_id = repartidor.id_repartidor

@@ -3,18 +3,37 @@
 from datetime import date, time
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class Schema(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)
+
+
+class ComercioFields(Schema):
+    nombre: str = Field(min_length=2, max_length=150)
+    direccion: str = Field(min_length=3, max_length=255)
+    telefono: str = Field(min_length=6, max_length=30)
+    email: EmailStr
+
+
+class ComercioCreate(ComercioFields):
+    pass
+
+
+class ComercioUpdate(ComercioFields):
+    pass
+
+
+class ComercioOut(ComercioFields):
+    id_comercio: int
 
 
 class ClienteFields(Schema):
     nombre: str = Field(min_length=2, max_length=100)
     apellido: str = Field(min_length=2, max_length=100)
     telefono: str = Field(min_length=6, max_length=30)
-    email: str = Field(min_length=5, max_length=255)
+    email: EmailStr
     direccion: str = Field(min_length=3, max_length=255)
 
 
@@ -36,6 +55,7 @@ class RepartidorFields(Schema):
     telefono: str = Field(min_length=6, max_length=30)
     zona: str = Field(min_length=2, max_length=100)
     disponible: bool = True
+    comercio_id: int = Field(gt=0)
 
 
 class RepartidorCreate(RepartidorFields):
@@ -56,6 +76,7 @@ class ProductoFields(Schema):
     precio: Decimal = Field(gt=0, max_digits=10, decimal_places=2)
     categoria: str = Field(min_length=2, max_length=100)
     stock: int = Field(ge=0)
+    comercio_id: int = Field(gt=0)
 
 
 class ProductoCreate(ProductoFields):
@@ -89,6 +110,7 @@ class PedidoCreate(Schema):
     zona: str = Field(min_length=2, max_length=100)
     horario_estimado: time
     cliente_id: int = Field(gt=0)
+    comercio_id: int = Field(gt=0)
     detalles: list[DetalleCreate] = Field(min_length=1)
 
 
@@ -118,6 +140,7 @@ class PedidoOut(Schema):
     estado: str
     horario_estimado: time
     cliente_id: int
+    comercio_id: int
     repartidor_id: int | None
     detalles: list[DetalleOut]
 

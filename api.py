@@ -11,6 +11,7 @@ import models  # noqa: F401  Registra las tablas ORM antes de inicializarlas.
 from database import Base, crear_base_si_no_existe, engine
 from errores import registrar_manejadores
 from routers.clientes import router as clientes_router
+from routers.comercios import router as comercios_router
 from routers.entregas import router as entregas_router
 from routers.pedidos import router as pedidos_router
 from routers.productos import router as productos_router
@@ -40,6 +41,7 @@ app.add_middleware(
 )
 registrar_manejadores(app)
 
+app.include_router(comercios_router)
 app.include_router(clientes_router)
 app.include_router(repartidores_router)
 app.include_router(productos_router)

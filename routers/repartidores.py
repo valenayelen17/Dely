@@ -4,6 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from database import get_db
+from routers.comercios import buscar_comercio
 from models import Repartidor
 from schemas import RepartidorCreate, RepartidorOut, RepartidorUpdate
 
@@ -11,8 +12,14 @@ router = APIRouter(prefix="/api/repartidores", tags=["Repartidores"])
 
 
 @router.get("/", response_model=list[RepartidorOut])
-def listar_repartidores(limit: int = Query(100, gt=0, le=500), db: Session = Depends(get_db)):
+def listar_repartidores(
+    comercio_id: int | None = None,
+    limit: int = Query(100, gt=0, le=500),
+    db: Session = Depends(get_db),
+):
     consulta = select(Repartidor).order_by(Repartidor.id_repartidor).limit(limit)
+    if comercio_id is not None:
+        consulta = consulta.where(Repartidor.comercio_id == comercio_id)
     return list(db.scalars(consulta).all())
 
 
@@ -26,6 +33,7 @@ def obtener_repartidor(repartidor_id: int, db: Session = Depends(get_db)):
 
 @router.post("/", response_model=RepartidorOut, status_code=status.HTTP_201_CREATED)
 def crear_repartidor(datos: RepartidorCreate, db: Session = Depends(get_db)):
+    buscar_comercio(db, datos.comercio_id)
     repartidor = Repartidor(**datos.model_dump())
     db.add(repartidor)
     db.commit()
@@ -38,6 +46,7 @@ def actualizar_repartidor(repartidor_id: int, datos: RepartidorUpdate, db: Sessi
     repartidor = db.get(Repartidor, repartidor_id)
     if repartidor is None:
         raise HTTPException(404, "Repartidor no encontrado.")
+    buscar_comercio(db, datos.comercio_id)
     for campo, valor in datos.model_dump().items():
         setattr(repartidor, campo, valor)
     db.commit()
