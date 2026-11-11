@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -14,12 +13,15 @@ router = APIRouter(prefix="/api/productos", tags=["Productos"])
 @router.get("/", response_model=list[ProductoOut])
 def listar_productos(
     comercio_id: int | None = None,
+    categoria: str | None = None,
     limit: int = Query(100, gt=0, le=500),
     db: Session = Depends(get_db),
 ):
     consulta = select(Producto).order_by(Producto.id_producto).limit(limit)
     if comercio_id is not None:
         consulta = consulta.where(Producto.comercio_id == comercio_id)
+    if categoria:
+        consulta = consulta.where(Producto.categoria == categoria.strip())
     return list(db.scalars(consulta).all())
 
 
@@ -59,9 +61,7 @@ def eliminar_producto(producto_id: int, db: Session = Depends(get_db)):
     producto = db.get(Producto, producto_id)
     if producto is None:
         raise HTTPException(404, "Producto no encontrado.")
+    if producto.detalles:
+        raise HTTPException(409, "No se puede eliminar: el producto forma parte de pedidos.")
     db.delete(producto)
-    try:
-        db.commit()
-    except IntegrityError as error:
-        db.rollback()
-        raise HTTPException(409, "No se puede eliminar: el producto forma parte de pedidos.") from error
+    db.commit()
