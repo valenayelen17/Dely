@@ -1,7 +1,7 @@
-from datetime import date, time
+from datetime import date, datetime, time
 from decimal import Decimal
 
-from sqlalchemy import Boolean, Date, ForeignKey, Integer, Numeric, String, Time, UniqueConstraint
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Time, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
@@ -94,6 +94,9 @@ class Pedido(Base):
     entrega: Mapped["Entrega | None"] = relationship(
         back_populates="pedido", cascade="all, delete-orphan", uselist=False
     )
+    notificaciones: Mapped[list["Notificacion"]] = relationship(
+        back_populates="pedido", cascade="all, delete-orphan", order_by="Notificacion.id_notificacion"
+    )
 
     @property
     def total(self) -> Decimal:
@@ -141,3 +144,18 @@ class Entrega(Base):
 
     pedido: Mapped[Pedido] = relationship(back_populates="entrega")
     repartidor: Mapped[Repartidor] = relationship(back_populates="entregas")
+
+
+class Notificacion(Base):
+    __tablename__ = "notificaciones"
+
+    id_notificacion: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    tipo: Mapped[str] = mapped_column(String(30), nullable=False)
+    mensaje: Mapped[str] = mapped_column(String(255), nullable=False)
+    fecha_hora: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    leida: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    pedido_id: Mapped[int] = mapped_column(
+        ForeignKey("pedidos.id_pedido", ondelete="CASCADE"), nullable=False, index=True
+    )
+
+    pedido: Mapped[Pedido] = relationship(back_populates="notificaciones")

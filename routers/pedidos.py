@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from estados import PEDIDOS_ACTIVOS, EstadoPedido
 from models import Pedido
-from schemas import PedidoAsignacion, PedidoCreate, PedidoOut, PedidoUpdate
+from schemas import NotificacionOut, PedidoAsignacion, PedidoCreate, PedidoOut, PedidoUpdate
 from services import pedidos as servicio
 
 router = APIRouter(prefix="/api/pedidos", tags=["Pedidos"])
@@ -48,6 +48,11 @@ def listar_pendientes(
 @router.get("/{pedido_id}", response_model=PedidoOut)
 def obtener_pedido(pedido_id: int, db: Session = Depends(get_db)):
     return servicio.obtener_pedido(db, pedido_id)
+
+
+@router.get("/{pedido_id}/notificaciones", response_model=list[NotificacionOut])
+def notificaciones_del_pedido(pedido_id: int, db: Session = Depends(get_db)):
+    return servicio.obtener_pedido(db, pedido_id).notificaciones
 
 
 @router.post("/", response_model=PedidoOut, status_code=status.HTTP_201_CREATED)

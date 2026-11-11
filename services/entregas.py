@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session, selectinload
 from errores import Conflicto, NoEncontrado
 from estados import ENTREGAS_ACTIVAS, PEDIDO_SEGUN_ENTREGA, TRANSICIONES_ENTREGA, EstadoEntrega
 from models import DetallePedido, Entrega, Pedido, Repartidor
+from services.notificaciones import notificar_estado
 
 CARGA_ENTREGA = (
     selectinload(Entrega.repartidor),
@@ -55,6 +56,7 @@ def cambiar_estado(
         entrega.hora_entrega = ahora.time().replace(microsecond=0)
         entrega.ubicacion_actual = entrega.pedido.direccion_entrega
     entrega.pedido.estado = PEDIDO_SEGUN_ENTREGA[nuevo]
+    notificar_estado(entrega.pedido, nuevo)
     db.commit()
     return obtener_entrega(db, entrega_id)
 

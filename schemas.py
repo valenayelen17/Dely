@@ -1,4 +1,4 @@
-from datetime import date, time
+from datetime import date, datetime, time
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -177,6 +177,14 @@ class PedidoDeEntrega(Schema):
 
 class EntregaDetalle(EntregaOut):
     pedido: PedidoDeEntrega
+
+
+class NotificacionOut(Schema):
+    id_notificacion: int
+    tipo: str
+    mensaje: str
+    fecha_hora: datetime
+    leida: bool
 
 
 class PedidoOut(Schema):

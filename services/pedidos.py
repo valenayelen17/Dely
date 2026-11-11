@@ -5,6 +5,7 @@ from errores import Conflicto, DatoInvalido, NoEncontrado
 from estados import PEDIDOS_FINALIZADOS, EstadoEntrega, EstadoPedido
 from models import Cliente, Comercio, DetallePedido, Entrega, Pedido, Producto, Repartidor
 from schemas import PedidoCreate, PedidoUpdate
+from services.notificaciones import notificar_estado, notificar_recepcion
 
 CARGA_PEDIDO = (
     selectinload(Pedido.detalles).selectinload(DetallePedido.producto),
@@ -61,6 +62,7 @@ def crear_pedido(db: Session, datos: PedidoCreate) -> Pedido:
             )
         )
 
+    notificar_recepcion(pedido)
     db.add(pedido)
     db.commit()
     return obtener_pedido(db, pedido.id_pedido)
@@ -92,12 +94,11 @@ def asignar_repartidor(db: Session, pedido_id: int, repartidor_id: int) -> Pedid
         raise Conflicto("El repartidor no cubre la zona de entrega del pedido.")
 
     if pedido.entrega is None:
-        pedido.entrega = Entrega(repartidor_id=repartidor.id_repartidor, estado=EstadoEntrega.ASIGNADA)
-    else:
-        pedido.entrega.repartidor_id = repartidor.id_repartidor
+        pedido.entrega = Entrega(estado=EstadoEntrega.ASIGNADA)
+    pedido.entrega.repartidor = repartidor
     pedido.estado = EstadoPedido.ASIGNADO
+    notificar_estado(pedido, EstadoEntrega.ASIGNADA)
     db.commit()
-    db.expire_all()
     return obtener_pedido(db, pedido_id)
 
 
@@ -114,6 +115,7 @@ def cancelar_pedido(db: Session, pedido_id: int) -> Pedido:
     pedido.estado = EstadoPedido.CANCELADO
     if pedido.entrega is not None:
         pedido.entrega.estado = EstadoEntrega.CANCELADA
+    notificar_estado(pedido, EstadoEntrega.CANCELADA)
     db.commit()
     return obtener_pedido(db, pedido_id)
 
