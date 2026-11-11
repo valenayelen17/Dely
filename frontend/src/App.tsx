@@ -1,6 +1,8 @@
 import { BrowserRouter, Route, Routes } from 'react-router'
 import { ProveedorToasts } from './components/Toasts'
 import { Inicio } from './vistas/Inicio'
+import { IngresarCodigo } from './vistas/cliente/IngresarCodigo'
+import { Seguimiento } from './vistas/cliente/Seguimiento'
 import { Clientes } from './vistas/encargado/Clientes'
 import { Historial } from './vistas/encargado/Historial'
 import { LayoutEncargado } from './vistas/encargado/LayoutEncargado'
@@ -29,6 +31,8 @@ function App() {
           <Route path="/repartidor" element={<QuienSos />} />
           <Route path="/repartidor/:repartidorId" element={<MisEntregas />} />
           <Route path="/repartidor/:repartidorId/entregas/:entregaId" element={<DetalleEntrega />} />
+          <Route path="/seguimiento" element={<IngresarCodigo />} />
+          <Route path="/seguimiento/:codigo" element={<Seguimiento />} />
           <Route path="*" element={<Inicio />} />
         </Routes>
       </BrowserRouter>
