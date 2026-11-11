@@ -1,9 +1,9 @@
-"""Esquemas Pydantic para validar entradas y representar respuestas."""
-
 from datetime import date, time
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
+from estados import EstadoEntrega, EstadoPedido
 
 
 class Schema(BaseModel):
@@ -106,7 +106,7 @@ class DetalleOut(Schema):
 
 class PedidoCreate(Schema):
     fecha_pedido: date = Field(default_factory=date.today)
-    direccion_entrega: str = Field(min_length=3, max_length=255)
+    direccion_entrega: str | None = Field(default=None, min_length=3, max_length=255)
     zona: str = Field(min_length=2, max_length=100)
     horario_estimado: time
     cliente_id: int = Field(gt=0)
@@ -115,21 +115,23 @@ class PedidoCreate(Schema):
 
 
 class PedidoUpdate(Schema):
-    fecha_pedido: date
     direccion_entrega: str = Field(min_length=3, max_length=255)
     zona: str = Field(min_length=2, max_length=100)
-    estado: str = Field(min_length=2, max_length=30)
     horario_estimado: time
-    cliente_id: int = Field(gt=0)
-    repartidor_id: int | None = Field(default=None, gt=0)
-
-
-class PedidoEstado(Schema):
-    estado: str = Field(min_length=2, max_length=30)
 
 
 class PedidoAsignacion(Schema):
     repartidor_id: int = Field(gt=0)
+
+
+class EntregaOut(Schema):
+    id_entrega: int
+    pedido_id: int
+    repartidor_id: int
+    estado: EstadoEntrega
+    ubicacion_actual: str | None
+    fecha_entrega: date | None
+    hora_entrega: time | None
 
 
 class PedidoOut(Schema):
@@ -137,28 +139,9 @@ class PedidoOut(Schema):
     fecha_pedido: date
     direccion_entrega: str
     zona: str
-    estado: str
+    estado: EstadoPedido
     horario_estimado: time
     cliente_id: int
     comercio_id: int
-    repartidor_id: int | None
     detalles: list[DetalleOut]
-
-
-class EntregaCreate(Schema):
-    fecha_entrega: date
-    hora_entrega: time
-    ubicacion_actual: str = Field(min_length=2, max_length=255)
-    pedido_id: int = Field(gt=0)
-
-
-class EntregaUpdate(Schema):
-    fecha_entrega: date
-    hora_entrega: time
-    estado: str = Field(min_length=2, max_length=30)
-    ubicacion_actual: str = Field(min_length=2, max_length=255)
-
-
-class EntregaOut(EntregaCreate):
-    id_entrega: int
-    estado: str
+    entrega: EntregaOut | None

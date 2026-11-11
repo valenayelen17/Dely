@@ -1,5 +1,3 @@
-"""Entidades ORM y relaciones de DELY (Modelo del MVC)."""
-
 from datetime import date, time
 from decimal import Decimal
 
@@ -7,6 +5,7 @@ from sqlalchemy import Boolean, Date, ForeignKey, Integer, Numeric, String, Time
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
+from estados import EstadoEntrega, EstadoPedido
 
 
 class Comercio(Base):
@@ -49,7 +48,7 @@ class Repartidor(Base):
     )
 
     comercio: Mapped[Comercio] = relationship(back_populates="repartidores")
-    pedidos: Mapped[list["Pedido"]] = relationship(back_populates="repartidor")
+    entregas: Mapped[list["Entrega"]] = relationship(back_populates="repartidor")
 
 
 class Producto(Base):
@@ -76,7 +75,9 @@ class Pedido(Base):
     fecha_pedido: Mapped[date] = mapped_column(Date, default=date.today, nullable=False)
     direccion_entrega: Mapped[str] = mapped_column(String(255), nullable=False)
     zona: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
-    estado: Mapped[str] = mapped_column(String(30), default="Pendiente", nullable=False, index=True)
+    estado: Mapped[str] = mapped_column(
+        String(30), default=EstadoPedido.PENDIENTE, nullable=False, index=True
+    )
     horario_estimado: Mapped[time] = mapped_column(Time, nullable=False)
     cliente_id: Mapped[int] = mapped_column(
         ForeignKey("clientes.id_cliente", ondelete="RESTRICT"), nullable=False, index=True
@@ -84,17 +85,19 @@ class Pedido(Base):
     comercio_id: Mapped[int] = mapped_column(
         ForeignKey("comercios.id_comercio", ondelete="RESTRICT"), nullable=False, index=True
     )
-    repartidor_id: Mapped[int | None] = mapped_column(ForeignKey("repartidores.id_repartidor"), nullable=True)
 
     cliente: Mapped[Cliente] = relationship(back_populates="pedidos")
     comercio: Mapped[Comercio] = relationship(back_populates="pedidos")
-    repartidor: Mapped[Repartidor | None] = relationship(back_populates="pedidos")
     detalles: Mapped[list["DetallePedido"]] = relationship(
         back_populates="pedido", cascade="all, delete-orphan"
     )
     entrega: Mapped["Entrega | None"] = relationship(
         back_populates="pedido", cascade="all, delete-orphan", uselist=False
     )
+
+    @property
+    def repartidor(self) -> Repartidor | None:
+        return self.entrega.repartidor if self.entrega else None
 
 
 class DetallePedido(Base):
@@ -119,9 +122,18 @@ class Entrega(Base):
     __tablename__ = "entregas"
 
     id_entrega: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    fecha_entrega: Mapped[date] = mapped_column(Date, nullable=False)
-    hora_entrega: Mapped[time] = mapped_column(Time, nullable=False)
-    estado: Mapped[str] = mapped_column(String(30), default="Pendiente", nullable=False)
-    ubicacion_actual: Mapped[str] = mapped_column(String(255), nullable=False)
-    pedido_id: Mapped[int] = mapped_column(ForeignKey("pedidos.id_pedido"), unique=True, nullable=False)
+    estado: Mapped[str] = mapped_column(
+        String(30), default=EstadoEntrega.ASIGNADA, nullable=False, index=True
+    )
+    ubicacion_actual: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    fecha_entrega: Mapped[date | None] = mapped_column(Date, nullable=True)
+    hora_entrega: Mapped[time | None] = mapped_column(Time, nullable=True)
+    pedido_id: Mapped[int] = mapped_column(
+        ForeignKey("pedidos.id_pedido", ondelete="CASCADE"), unique=True, nullable=False
+    )
+    repartidor_id: Mapped[int] = mapped_column(
+        ForeignKey("repartidores.id_repartidor", ondelete="RESTRICT"), nullable=False, index=True
+    )
+
     pedido: Mapped[Pedido] = relationship(back_populates="entrega")
+    repartidor: Mapped[Repartidor] = relationship(back_populates="entregas")
