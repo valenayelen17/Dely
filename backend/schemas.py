@@ -166,6 +166,7 @@ class EntregaUbicacion(Schema):
 
 class PedidoDeEntrega(Schema):
     id_pedido: int
+    codigo_seguimiento: str
     direccion_entrega: str
     zona: str
     estado: EstadoPedido

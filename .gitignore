@@ -17,3 +17,6 @@ __pycache__/
 
 # Dumps de base de datos (la consigna pide no subirlos)
 *.sql
+
+# Artefactos de Playwright
+.playwright-mcp/
