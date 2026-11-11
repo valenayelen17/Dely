@@ -96,8 +96,8 @@ class Pedido(Base):
     )
 
     @property
-    def repartidor(self) -> Repartidor | None:
-        return self.entrega.repartidor if self.entrega else None
+    def total(self) -> Decimal:
+        return sum((detalle.subtotal for detalle in self.detalles), Decimal("0"))
 
 
 class DetallePedido(Base):
@@ -116,6 +116,10 @@ class DetallePedido(Base):
     @property
     def subtotal(self) -> Decimal:
         return self.cantidad * self.precio_unitario
+
+    @property
+    def producto_nombre(self) -> str:
+        return self.producto.nombre
 
 
 class Entrega(Base):

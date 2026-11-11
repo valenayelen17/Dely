@@ -100,9 +100,25 @@ class DetalleCreate(Schema):
     cantidad: int = Field(gt=0)
 
 
+class ClienteResumen(Schema):
+    id_cliente: int
+    nombre: str
+    apellido: str
+    telefono: str
+
+
+class RepartidorResumen(Schema):
+    id_repartidor: int
+    nombre: str
+    apellido: str
+    telefono: str
+    zona: str
+
+
 class DetalleOut(Schema):
     id_detalle: int
     producto_id: int
+    producto_nombre: str
     cantidad: int
     precio_unitario: Decimal
     subtotal: Decimal
@@ -132,6 +148,7 @@ class EntregaOut(Schema):
     id_entrega: int
     pedido_id: int
     repartidor_id: int
+    repartidor: RepartidorResumen
     estado: EstadoEntrega
     ubicacion_actual: str | None
     fecha_entrega: date | None
@@ -147,5 +164,7 @@ class PedidoOut(Schema):
     horario_estimado: time
     cliente_id: int
     comercio_id: int
+    cliente: ClienteResumen
     detalles: list[DetalleOut]
+    total: Decimal
     entrega: EntregaOut | None

@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, Query, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from database import get_db
-from estados import EstadoPedido
+from estados import PEDIDOS_ACTIVOS, EstadoPedido
 from models import Pedido
 from schemas import PedidoAsignacion, PedidoCreate, PedidoOut, PedidoUpdate
 from services import pedidos as servicio
@@ -23,6 +23,25 @@ def listar_pedidos(
         consulta = consulta.where(Pedido.comercio_id == comercio_id)
     if estado is not None:
         consulta = consulta.where(Pedido.estado == estado)
+    return list(db.scalars(consulta).all())
+
+
+@router.get("/pendientes", response_model=list[PedidoOut])
+def listar_pendientes(
+    comercio_id: int | None = None,
+    zona: str | None = None,
+    db: Session = Depends(get_db),
+):
+    consulta = (
+        select(Pedido)
+        .options(*servicio.CARGA_PEDIDO)
+        .where(Pedido.estado.in_(PEDIDOS_ACTIVOS))
+        .order_by(Pedido.fecha_pedido, Pedido.horario_estimado, Pedido.id_pedido)
+    )
+    if comercio_id is not None:
+        consulta = consulta.where(Pedido.comercio_id == comercio_id)
+    if zona:
+        consulta = consulta.where(func.lower(Pedido.zona) == zona.strip().lower())
     return list(db.scalars(consulta).all())
 
 
