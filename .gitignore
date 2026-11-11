@@ -15,8 +15,9 @@ __pycache__/
 # Tests
 .pytest_cache/
 
-# Dumps de base de datos (la consigna pide no subirlos)
+# Dumps de base de datos (la consigna pide no subirlos) y bases SQLite locales
 *.sql
+*.db
 
 # Artefactos de Playwright
 .playwright-mcp/
