@@ -70,6 +70,10 @@ class RepartidorOut(RepartidorFields):
     id_repartidor: int
 
 
+class RepartidorDisponibilidad(Schema):
+    disponible: bool
+
+
 class ProductoFields(Schema):
     nombre: str = Field(min_length=2, max_length=150)
     descripcion: str | None = Field(default=None, max_length=500)
