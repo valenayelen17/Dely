@@ -1,23 +1,17 @@
-import { useEffect, useState } from 'react'
-import { pedirApi } from './api/cliente'
-
-type EstadoConexion = 'verificando' | 'conectada' | 'sin conexión'
+import { BrowserRouter, Route, Routes } from 'react-router'
+import { ProveedorToasts } from './components/Toasts'
+import { Inicio } from './vistas/Inicio'
 
 function App() {
-  const [conexion, setConexion] = useState<EstadoConexion>('verificando')
-
-  useEffect(() => {
-    pedirApi<unknown[]>('/api/comercios/?limit=1')
-      .then(() => setConexion('conectada'))
-      .catch(() => setConexion('sin conexión'))
-  }, [])
-
   return (
-    <main>
-      <h1>DELY</h1>
-      <p>Gestión de entregas de última milla.</p>
-      <p>API: {conexion}</p>
-    </main>
+    <ProveedorToasts>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Inicio />} />
+          <Route path="*" element={<Inicio />} />
+        </Routes>
+      </BrowserRouter>
+    </ProveedorToasts>
   )
 }
 
