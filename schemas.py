@@ -189,6 +189,7 @@ class NotificacionOut(Schema):
 
 class PedidoOut(Schema):
     id_pedido: int
+    codigo_seguimiento: str
     fecha_pedido: date
     direccion_entrega: str
     zona: str
@@ -200,3 +201,26 @@ class PedidoOut(Schema):
     detalles: list[DetalleOut]
     total: Decimal
     entrega: EntregaOut | None
+
+
+class ProductoSeguimiento(Schema):
+    nombre: str
+    cantidad: int
+    subtotal: Decimal
+
+
+class SeguimientoOut(Schema):
+    codigo_seguimiento: str
+    estado: EstadoPedido
+    estado_entrega: EstadoEntrega | None
+    fecha_pedido: date
+    horario_estimado: time
+    direccion_entrega: str
+    comercio: str
+    comercio_telefono: str
+    repartidor: str | None
+    ubicacion_actual: str | None
+    hora_entrega: time | None
+    productos: list[ProductoSeguimiento]
+    total: Decimal
+    notificaciones: list[NotificacionOut]

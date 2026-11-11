@@ -16,6 +16,7 @@ from routers.entregas import router as entregas_router
 from routers.pedidos import router as pedidos_router
 from routers.productos import router as productos_router
 from routers.repartidores import router as repartidores_router
+from routers.seguimiento import router as seguimiento_router
 
 
 @asynccontextmanager
@@ -47,6 +48,7 @@ app.include_router(repartidores_router)
 app.include_router(productos_router)
 app.include_router(pedidos_router)
 app.include_router(entregas_router)
+app.include_router(seguimiento_router)
 
 
 @app.get("/", tags=["Inicio"])

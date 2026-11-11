@@ -1,3 +1,4 @@
+import secrets
 from datetime import date, datetime, time
 from decimal import Decimal
 
@@ -6,6 +7,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
 from estados import EstadoEntrega, EstadoPedido
+
+
+def generar_codigo_seguimiento() -> str:
+    return secrets.token_hex(4).upper()
 
 
 class Comercio(Base):
@@ -72,6 +77,9 @@ class Pedido(Base):
     __tablename__ = "pedidos"
 
     id_pedido: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    codigo_seguimiento: Mapped[str] = mapped_column(
+        String(12), unique=True, nullable=False, index=True, default=generar_codigo_seguimiento
+    )
     fecha_pedido: Mapped[date] = mapped_column(Date, default=date.today, nullable=False)
     direccion_entrega: Mapped[str] = mapped_column(String(255), nullable=False)
     zona: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
