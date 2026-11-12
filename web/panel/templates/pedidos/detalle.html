@@ -14,7 +14,12 @@ Pedido <span class="codigo">{{ pedido.codigo_seguimiento }}</span>
 <div class="row">
     <div class="col-lg-7">
         <div class="card mb-4">
-            <div class="card-header"><h3 class="card-title"><i class="bi bi-person me-1"></i> Cliente y entrega</h3></div>
+            <div class="card-header">
+                <h3 class="card-title"><i class="bi bi-person me-1"></i> Cliente y entrega</h3>
+                {% if pedido.estado == "Pendiente" %}
+                <div class="card-tools"><a href="{% url 'pedido_editar' pedido.id_pedido %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i> Editar</a></div>
+                {% endif %}
+            </div>
             <div class="card-body">
                 <dl class="row mb-0">
                     <dt class="col-sm-4">Cliente</dt><dd class="col-sm-8">{{ pedido.cliente.nombre }} {{ pedido.cliente.apellido }}</dd>
@@ -23,6 +28,7 @@ Pedido <span class="codigo">{{ pedido.codigo_seguimiento }}</span>
                     <dt class="col-sm-4">Zona</dt><dd class="col-sm-8">{{ pedido.zona }}</dd>
                     <dt class="col-sm-4">Horario estimado</dt><dd class="col-sm-8">{{ pedido.horario_estimado|hora }}</dd>
                 </dl>
+                {% if pedido.estado == "Pendiente" %}<p class="small text-body-secondary mb-0 mt-2">Dirección, zona y horario se pueden editar mientras el pedido esté Pendiente.</p>{% endif %}
             </div>
         </div>
 

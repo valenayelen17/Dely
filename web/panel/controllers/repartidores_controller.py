@@ -1,9 +1,12 @@
 from django.contrib import messages
 from django.shortcuts import redirect, render
 
+from ..forms import RepartidorForm
 from ..src import services
 from ..src.services import ErrorApi
 from .base import ControladorDely
+from .formulario_controller import FormularioController
+from .pedidos_controller import zonas_del_comercio
 
 
 class RepartidoresController(ControladorDely):
@@ -31,3 +34,25 @@ class DisponibilidadController(ControladorDely):
             estado = "en turno" if repartidor["disponible"] else "fuera de turno"
             messages.success(request, f"{repartidor['nombre']} {repartidor['apellido']} quedó {estado}.")
         return redirect("repartidores")
+
+
+class RepartidorFormularioController(FormularioController):
+    form_class = RepartidorForm
+    entidad = "repartidor"
+    url_volver = "repartidores"
+    usa_comercio = True
+
+    def obtener(self, pk):
+        return services.obtener_repartidor(pk)
+
+    def crear(self, datos):
+        return services.crear_repartidor(datos)
+
+    def editar(self, pk, datos):
+        return services.editar_repartidor(pk, datos)
+
+    def nombre(self, objeto):
+        return f"{objeto['nombre']} {objeto['apellido']}"
+
+    def contexto_extra(self, comercio):
+        return {"datalists": {"zonas": zonas_del_comercio(comercio["id_comercio"])}}

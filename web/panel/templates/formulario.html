@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block encabezado %}{{ titulo }}{% endblock %}
+{% block acciones %}
+<a href="{{ volver }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
+{% endblock %}
+
+{% block contenido %}
+<div class="row">
+    <div class="col-lg-7">
+        <form method="post" class="card" novalidate>
+            {% csrf_token %}
+            <div class="card-body">
+                {% for error in form.non_field_errors %}
+                <div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-1"></i> {{ error }}</div>
+                {% endfor %}
+
+                {% for campo in form %}
+                {% if campo.widget_type == "checkbox" %}
+                <div class="form-check form-switch mb-3">
+                    {{ campo }}
+                    <label class="form-check-label" for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+                </div>
+                {% else %}
+                <div class="mb-3">
+                    <label class="form-label" for="{{ campo.id_for_label }}">
+                        {{ campo.label }}{% if not campo.field.required %} <span class="text-body-secondary">(opcional)</span>{% endif %}
+                    </label>
+                    {{ campo }}
+                    {% if campo.help_text %}<div class="form-text">{{ campo.help_text }}</div>{% endif %}
+                    {% for error in campo.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                </div>
+                {% endif %}
+                {% endfor %}
+
+                {% for id, opciones in datalists.items %}
+                <datalist id="{{ id }}">{% for opcion in opciones %}<option value="{{ opcion }}">{% endfor %}</datalist>
+                {% endfor %}
+            </div>
+            <div class="card-footer d-flex gap-2">
+                <button type="submit" class="btn btn-success"><i class="bi bi-check-lg"></i> {% if editando %}Guardar cambios{% else %}Crear{% endif %}</button>
+                <a href="{{ volver }}" class="btn btn-link">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,9 +1,12 @@
 from django.contrib import messages
 from django.shortcuts import redirect, render
+from django.urls import reverse
 
+from ..forms import PedidoEdicionForm
 from ..src import services
 from ..src.services import ErrorApi
 from .base import ControladorDely
+from .formulario_controller import FormularioController
 
 ESTADOS_ACTIVOS = ["Pendiente", "Asignado", "En camino"]
 ESTADOS_CERRADOS = ["Entregado", "Cancelado"]
@@ -84,6 +87,33 @@ class CancelarPedidoController(ControladorDely):
         else:
             messages.success(request, f"Pedido {pedido['codigo_seguimiento']} cancelado. Se devolvió el stock.")
         return redirect("pedido_detalle", pedido_id=pedido_id)
+
+
+class EditarPedidoController(FormularioController):
+    """Dirección, zona y horario de un pedido Pendiente (la API rechaza los demás)."""
+
+    form_class = PedidoEdicionForm
+    entidad = "pedido"
+
+    def obtener(self, pk):
+        pedido = services.obtener_pedido(pk)
+        pedido["horario_estimado"] = str(pedido["horario_estimado"])[:5]
+        return pedido
+
+    def editar(self, pk, datos):
+        return services.editar_pedido(pk, datos)
+
+    def nombre(self, objeto):
+        return objeto["codigo_seguimiento"]
+
+    def destino(self, objeto):
+        return redirect("pedido_detalle", pedido_id=objeto["id_pedido"])
+
+    def volver(self, pk):
+        return reverse("pedido_detalle", args=[pk])
+
+    def contexto_extra(self, comercio):
+        return {"datalists": {"zonas": zonas_del_comercio(comercio["id_comercio"])}}
 
 
 class NuevoPedidoController(ControladorDely):

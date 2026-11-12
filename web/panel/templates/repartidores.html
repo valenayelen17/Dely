@@ -2,6 +2,9 @@
 {% block titulo %}Repartidores{% endblock %}
 {% block encabezado %}Repartidores{% endblock %}
 {% block bajada %}{{ en_turno }} de {{ repartidores|length }} en turno. Sólo los que están en turno se pueden asignar.{% endblock %}
+{% block acciones %}
+<a href="{% url 'repartidor_nuevo' %}" class="btn btn-success"><i class="bi bi-plus-lg"></i> Nuevo repartidor</a>
+{% endblock %}
 
 {% block contenido %}
 <div class="card">
@@ -21,7 +24,8 @@
                         <span class="badge text-bg-secondary">Fuera de turno</span>
                         {% endif %}
                     </td>
-                    <td class="text-end">
+                    <td class="text-end text-nowrap">
+                        <a href="{% url 'repartidor_editar' r.id_repartidor %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i> Editar</a>
                         <form method="post" action="{% url 'disponibilidad' r.id_repartidor %}" class="d-inline">
                             {% csrf_token %}
                             <input type="hidden" name="disponible" value="{% if r.disponible %}false{% else %}true{% endif %}">

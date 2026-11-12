@@ -142,3 +142,56 @@ class NuevoPedidoTest(SimpleTestCase):
         respuesta = self.client.post(reverse("nuevo_pedido"), datos)
 
         self.assertContains(respuesta, "Stock insuficiente para Pizza.", status_code=400)
+
+
+@patch(f"{SERVICIOS}.obtener_comercio", return_value=COMERCIO)
+class AbmTest(SimpleTestCase):
+    CLIENTE_VALIDO = {
+        "nombre": "Ana", "apellido": "Pérez", "telefono": "1160001111",
+        "email": "ana@ejemplo.com", "direccion": "Av. Callao 456",
+    }
+
+    @patch(f"{SERVICIOS}.crear_cliente", return_value={**CLIENTE, "id_cliente": 9})
+    def test_crea_un_cliente(self, crear, _comercio):
+        respuesta = self.client.post(reverse("cliente_nuevo"), self.CLIENTE_VALIDO)
+
+        crear.assert_called_once_with(self.CLIENTE_VALIDO)
+        self.assertRedirects(respuesta, reverse("clientes"), fetch_redirect_response=False)
+
+    @patch(f"{SERVICIOS}.crear_cliente")
+    def test_valida_el_formulario_antes_de_llamar_a_la_api(self, crear, _comercio):
+        respuesta = self.client.post(reverse("cliente_nuevo"), {**self.CLIENTE_VALIDO, "email": "no-es-un-email"})
+
+        self.assertEqual(respuesta.status_code, 400)
+        crear.assert_not_called()
+
+    @patch(f"{SERVICIOS}.listar_productos", return_value=[])
+    @patch(f"{SERVICIOS}.crear_producto", return_value={"id_producto": 3, "nombre": "Fugazzeta"})
+    def test_crea_un_producto_del_comercio(self, crear, _productos, _comercio):
+        datos = {"nombre": "Fugazzeta", "categoria": "Pizzas", "precio": "13500", "stock": "10", "descripcion": ""}
+
+        self.client.post(reverse("producto_nuevo"), datos)
+
+        cuerpo = crear.call_args.args[0]
+        self.assertEqual(cuerpo["comercio_id"], 1)
+        self.assertEqual(cuerpo["precio"], "13500")
+        self.assertIsNone(cuerpo["descripcion"])
+
+    @patch(f"{SERVICIOS}.listar_repartidores", return_value=[])
+    @patch(f"{SERVICIOS}.editar_repartidor", side_effect=ErrorApi("Ya existe un repartidor con ese teléfono."))
+    def test_muestra_el_error_de_la_api_en_el_formulario(self, _editar, _rep, _comercio):
+        datos = {"nombre": "Juan", "apellido": "Gómez", "telefono": "1150001111", "zona": "Centro", "disponible": "on"}
+
+        respuesta = self.client.post(reverse("repartidor_editar", args=[1]), datos)
+
+        self.assertContains(respuesta, "Ya existe un repartidor con ese teléfono.", status_code=400)
+
+    @patch(f"{SERVICIOS}.listar_repartidores", return_value=[])
+    @patch(f"{SERVICIOS}.editar_pedido", return_value=pedido(5))
+    def test_edita_un_pedido_y_vuelve_al_detalle(self, editar, _rep, _comercio):
+        datos = {"direccion_entrega": "Thames 1500", "zona": "Palermo", "horario_estimado": "22:15"}
+
+        respuesta = self.client.post(reverse("pedido_editar", args=[5]), datos)
+
+        editar.assert_called_once_with(5, datos)
+        self.assertRedirects(respuesta, reverse("pedido_detalle", args=[5]), fetch_redirect_response=False)
