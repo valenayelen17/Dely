@@ -6,7 +6,7 @@ Sistema de gestión de entregas de última milla para comercios con repartidores
 
 Trabajo práctico de Análisis y Metodologías de Sistemas. Integrantes: Marco Passador y Valentina Ayelén De Jesús.
 
-![Tablero de pedidos del comercio](docs/capturas/02-comercio-pendientes.png)
+![Tablero de pedidos en el panel del encargado](docs/capturas/12-django-pendientes.png)
 
 ## Contenido
 
@@ -164,29 +164,27 @@ sequenceDiagram
 
 ### 1. Comercio (encargado)
 
-El encargado trabaja desde el **panel Django** (`web/`, puerto 8001). El front React también tiene una versión de estas pantallas en `/comercio`, con las mismas funciones.
-
-| Panel Django: pendientes | Panel Django: asignación |
-|---|---|
-| ![Pendientes en Django](docs/capturas/12-django-pendientes.png) | ![Asignación en Django](docs/capturas/13-django-asignar.png) |
+El encargado trabaja desde el **panel Django** (`web/`, <http://127.0.0.1:8001>). Desde el inicio del front, la tarjeta *Comercio* abre el panel.
 
 **Tablero de pendientes (HU-01).** El encargado ve los pedidos activos en tres columnas (Pendiente, Asignado y En camino), ordenados por horario estimado. Puede filtrar por zona, y un aviso marca cuántos pedidos siguen sin repartidor. Cada tarjeta muestra el código, la dirección, el cliente, la cantidad de productos, el total y el repartidor.
 
-**Cargar un pedido.** En *Nuevo pedido* busca o da de alta al cliente, suma productos (ve el stock disponible) y elige la zona y el horario. Al crear el pedido, la API valida y descuenta el stock, congela el precio vigente de cada producto y genera el código de seguimiento que se le pasa al cliente.
+**Cargar un pedido.** En *Nuevo pedido* elige al cliente, la zona y el horario, y carga las cantidades de cada producto viendo el stock disponible y el total en vivo. Al crear el pedido, la API valida y descuenta el stock, congela el precio vigente de cada producto y genera el código de seguimiento que se le pasa al cliente.
 
-![Carga de un pedido nuevo](docs/capturas/04-comercio-nuevo-pedido.png)
+![Carga de un pedido nuevo](docs/capturas/14-django-nuevo-pedido.png)
 
-**Asignar repartidor (HU-02).** Al abrir un pedido pendiente aparece el panel de detalle. El sistema ofrece **sólo los repartidores en turno de la zona del pedido** y explica por qué no aparecen los demás. Al asignarlo se crea la entrega. Mientras el repartidor no salió, el pedido se puede reasignar. Mientras esté *Pendiente* se pueden editar la dirección, la zona y el horario.
+**Asignar repartidor (HU-02).** En el detalle del pedido, el sistema ofrece **sólo los repartidores en turno de la zona del pedido**. Al asignarlo se crea la entrega. Mientras el repartidor no salió, el pedido se puede reasignar. Mientras esté *Pendiente* se pueden editar la dirección, la zona y el horario. El detalle también muestra las notificaciones que recibió el cliente.
 
-![Panel de detalle con la asignación de repartidor](docs/capturas/03-comercio-asignar.png)
+![Detalle del pedido con la asignación de repartidor](docs/capturas/13-django-asignar.png)
 
-**Cancelar.** Un pedido no entregado se puede cancelar desde el panel. La cancelación **devuelve el stock** y le avisa al cliente.
+**Cancelar.** Un pedido no entregado se puede cancelar desde el detalle. La cancelación **devuelve el stock** y le avisa al cliente.
 
-**Administración e historial.** El menú lateral incluye el ABM de repartidores (con su zona y disponibilidad), de productos y de clientes. *Historial* lista los pedidos entregados y cancelados, con la hora real de entrega y el total facturado.
+**Administración e historial.** El menú lateral incluye el alta y la edición de repartidores (con su zona y el turno), de productos (agrupados por categoría, con aviso de stock bajo) y de clientes (con buscador). Los formularios validan los datos antes de enviarlos y muestran los errores de negocio que devuelve la API. *Historial* lista los pedidos entregados y cancelados, con la hora real de entrega y el total facturado.
 
-| Repartidores | Historial |
+| Repartidores | Productos |
 |---|---|
-| ![ABM de repartidores](docs/capturas/05-comercio-repartidores.png) | ![Historial de pedidos](docs/capturas/06-comercio-historial.png) |
+| ![Repartidores](docs/capturas/15-django-repartidores.png) | ![Productos por categoría](docs/capturas/17-django-productos.png) |
+| **Clientes** | **Historial** |
+| ![Clientes](docs/capturas/18-django-clientes.png) | ![Historial de pedidos](docs/capturas/16-django-historial.png) |
 
 ### 2. Repartidor (HU-04)
 

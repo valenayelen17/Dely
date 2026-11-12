@@ -37,8 +37,8 @@ Los tests simulan las respuestas de la API, así que no hace falta tenerla corri
 | Capa | Archivos | Rol |
 |---|---|---|
 | Modelo | `panel/src/services.py` | Acceso a los datos: una función por endpoint de la API, con `requests`. Traduce los errores de la API a `ErrorApi`. |
-| Vista | `panel/templates/` | Templates de Django con AdminLTE 4, Bootstrap 5 y Bootstrap Icons |
-| Controlador | `panel/controllers/` | Vistas basadas en clase (`View` con `get` y `post`): reciben el pedido, llaman a los servicios y eligen el template |
+| Vista | `panel/templates/`, `panel/forms.py` | Templates de Django con AdminLTE 4, Bootstrap 5 y Bootstrap Icons. Los formularios validan con los mismos límites que la API. |
+| Controlador | `panel/controllers/` | Vistas basadas en clase (`View` con `get` y `post`): reciben el pedido, llaman a los servicios y eligen el template. Las altas y ediciones heredan de `FormularioController`. |
 
 ```
 web/
@@ -49,7 +49,8 @@ web/
     ├── settings.py          Configuración (lee API_URL del .env)
     ├── urls.py              Rutas → controladores
     ├── context_processors.py
-    ├── controllers/         pedidos, repartidores e historial
+    ├── forms.py             Formularios de cliente, producto, repartidor y edición de pedido
+    ├── controllers/         pedidos, repartidores, productos, clientes, historial y el formulario genérico
     ├── src/services.py      Cliente de la API con requests
     ├── templates/           base.html (layout AdminLTE) y una pantalla por ruta
     ├── templatetags/dely.py Filtros: pesos, hora y color/icono por estado
@@ -64,12 +65,15 @@ web/
 |---|---|---|
 | `/pedidos/` | Pedidos activos en columnas por estado, filtro por zona y aviso de pedidos sin repartidor | HU-01 |
 | `/pedidos/<id>/` | Detalle: cliente, productos, notificaciones enviadas, **asignación del repartidor** y cancelación | HU-02 |
+| `/pedidos/<id>/editar/` | Dirección, zona y horario de un pedido Pendiente | — |
 | `/pedidos/nuevo/` | Carga de un pedido: cliente, zona, horario y productos, con el total calculado en vivo | — |
-| `/repartidores/` | Repartidores por zona, con el botón para ponerlos en turno o sacarlos | HU-02 |
+| `/repartidores/` | Alta y edición de repartidores, y el botón para ponerlos en turno o sacarlos | HU-02 |
+| `/productos/` | Alta y edición de productos, agrupados por categoría y con aviso de stock bajo | — |
+| `/clientes/` | Alta y edición de clientes, con buscador | — |
 | `/historial/` | Pedidos entregados y cancelados, con lo facturado | — |
 
-Las vistas del **repartidor** y del **cliente** están en el front React (`frontend/`), pensado para el celular. El menú del panel tiene links a esas vistas.
+Todo lo del comercio está en este panel. Las vistas del **repartidor** y del **cliente** están en el front React (`frontend/`), pensado para el celular, y el menú del panel tiene links a esas vistas.
 
-| Asignación de repartidor | Historial |
+| Asignación de repartidor | Edición de un repartidor |
 |---|---|
-| ![Detalle con asignación](../docs/capturas/13-django-asignar.png) | ![Historial](../docs/capturas/16-django-historial.png) |
+| ![Detalle con asignación](../docs/capturas/13-django-asignar.png) | ![Formulario de repartidor](../docs/capturas/19-django-editar-repartidor.png) |
