@@ -18,8 +18,6 @@ ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "127.0.0.1,localh
 
 # URL base de la API de DELY, por ejemplo http://127.0.0.1:8000/api/
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000/api/")
-# Front React con las vistas mobile del repartidor y del cliente.
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 INSTALLED_APPS = [
     "panel",

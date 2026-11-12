@@ -1,5 +1,3 @@
-from django.conf import settings
-
 # Ruta -> entrada del menú lateral que se marca como activa.
 MENU = {
     "pendientes": "pedidos",
@@ -22,7 +20,4 @@ MENU = {
 def dely(request):
     """Datos comunes a todas las pantallas del panel."""
     match = getattr(request, "resolver_match", None)
-    return {
-        "menu": MENU.get(match.url_name, "") if match else "",
-        "frontend_url": settings.FRONTEND_URL.rstrip("/"),
-    }
+    return {"menu": MENU.get(match.url_name, "") if match else ""}
