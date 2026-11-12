@@ -56,25 +56,37 @@
                     <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="navigation" aria-label="Menú principal">
                         <li class="nav-header">COMERCIO</li>
                         <li class="nav-item">
-                            <a href="{% url 'pendientes' %}" class="nav-link {% if seccion == 'pendientes' or seccion == 'pedido_detalle' %}active{% endif %}">
+                            <a href="{% url 'pendientes' %}" class="nav-link {% if menu == 'pedidos' %}active{% endif %}">
                                 <i class="nav-icon bi bi-kanban"></i>
                                 <p>Pedidos pendientes</p>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="{% url 'nuevo_pedido' %}" class="nav-link {% if seccion == 'nuevo_pedido' %}active{% endif %}">
+                            <a href="{% url 'nuevo_pedido' %}" class="nav-link {% if menu == 'nuevo_pedido' %}active{% endif %}">
                                 <i class="nav-icon bi bi-plus-circle"></i>
                                 <p>Nuevo pedido</p>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="{% url 'repartidores' %}" class="nav-link {% if seccion == 'repartidores' %}active{% endif %}">
+                            <a href="{% url 'repartidores' %}" class="nav-link {% if menu == 'repartidores' %}active{% endif %}">
                                 <i class="nav-icon bi bi-truck"></i>
                                 <p>Repartidores</p>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="{% url 'historial' %}" class="nav-link {% if seccion == 'historial' %}active{% endif %}">
+                            <a href="{% url 'productos' %}" class="nav-link {% if menu == 'productos' %}active{% endif %}">
+                                <i class="nav-icon bi bi-box-seam"></i>
+                                <p>Productos</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'clientes' %}" class="nav-link {% if menu == 'clientes' %}active{% endif %}">
+                                <i class="nav-icon bi bi-people"></i>
+                                <p>Clientes</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'historial' %}" class="nav-link {% if menu == 'historial' %}active{% endif %}">
                                 <i class="nav-icon bi bi-clock-history"></i>
                                 <p>Historial</p>
                             </a>

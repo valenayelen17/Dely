@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load dely %}
+{% block titulo %}Productos{% endblock %}
+{% block encabezado %}Productos{% endblock %}
+{% block bajada %}{{ cantidad }} producto{{ cantidad|pluralize }}{% if sin_stock %} · {{ sin_stock }} sin stock{% endif %}. El stock se descuenta al crear pedidos y vuelve al cancelarlos.{% endblock %}
+{% block acciones %}
+<a href="{% url 'producto_nuevo' %}" class="btn btn-success"><i class="bi bi-plus-lg"></i> Nuevo producto</a>
+{% endblock %}
+
+{% block contenido %}
+{% for categoria, productos in categorias %}
+<div class="card mb-4">
+    <div class="card-header"><h3 class="card-title"><i class="bi bi-tag me-1"></i> {{ categoria }}</h3></div>
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0" style="table-layout: fixed">
+            <thead><tr><th style="width: 50%">Producto</th><th class="text-end">Precio</th><th class="text-end">Stock</th><th class="text-end">Acción</th></tr></thead>
+            <tbody>
+                {% for p in productos %}
+                <tr>
+                    <td>{{ p.nombre }}{% if p.descripcion %}<br><span class="small text-body-secondary">{{ p.descripcion }}</span>{% endif %}</td>
+                    <td class="text-end">{{ p.precio|pesos }}</td>
+                    <td class="text-end">
+                        {% if p.stock == 0 %}<span class="badge text-bg-danger">Sin stock</span>
+                        {% elif p.stock < 10 %}<span class="badge text-bg-warning">{{ p.stock }}</span>
+                        {% else %}{{ p.stock }}{% endif %}
+                    </td>
+                    <td class="text-end"><a href="{% url 'producto_editar' p.id_producto %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i> Editar</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% empty %}
+<div class="callout callout-info">Todavía no hay productos. <a href="{% url 'producto_nuevo' %}">Cargá el primero</a>.</div>
+{% endfor %}
+{% endblock %}
