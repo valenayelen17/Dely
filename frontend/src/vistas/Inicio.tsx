@@ -1,7 +1,6 @@
 import { Link } from 'react-router'
 import { Icono, type NombreIcono } from '../components/Icono'
 import { Logo } from '../components/Logo'
-import { PANEL_URL } from '../lib/panel'
 
 interface Rol {
   a: string
@@ -11,20 +10,9 @@ interface Rol {
   icono: NombreIcono
   fondo: string
   color: string
-  externo?: boolean
 }
 
 const ROLES: Rol[] = [
-  {
-    a: PANEL_URL,
-    externo: true,
-    titulo: 'Comercio',
-    texto: 'Cargá pedidos, asigná repartidores y seguí cada entrega en el panel del encargado.',
-    accion: 'Abrir el panel',
-    icono: 'tienda',
-    fondo: 'var(--c-brand-soft)',
-    color: 'var(--c-brand-ink)',
-  },
   {
     a: '/repartidor',
     titulo: 'Repartidor',
@@ -55,7 +43,7 @@ export function Inicio() {
         style={{
           flexGrow: 1,
           width: '100%',
-          maxWidth: 1120,
+          maxWidth: 760,
           margin: '0 auto',
           padding: '48px 24px 64px',
           display: 'flex',
@@ -69,31 +57,19 @@ export function Inicio() {
           <p style={{ fontSize: 18, color: 'var(--c-ink-2)' }}>Elegí tu rol para ver tu pantalla. Sin usuarios ni contraseñas.</p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
-          {ROLES.map((rol) => {
-            const contenido = (
-              <>
-                <span className="role-ic" style={{ background: rol.fondo, color: rol.color }}>
-                  <Icono nombre={rol.icono} tamano="xl" />
-                </span>
-                <span style={{ fontSize: 24, fontWeight: 700 }}>{rol.titulo}</span>
-                <span style={{ color: 'var(--c-ink-2)', flexGrow: 1 }}>{rol.texto}</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 700, color: 'var(--c-primary)' }}>
-                  {rol.accion}
-                  <Icono nombre="adelante" />
-                </span>
-              </>
-            )
-            // El panel del comercio es otra aplicación (Django): se abre con un link común.
-            return rol.externo ? (
-              <a key={rol.a} className="role" href={rol.a}>
-                {contenido}
-              </a>
-            ) : (
-              <Link key={rol.a} className="role" to={rol.a}>
-                {contenido}
-              </Link>
-            )
-          })}
+          {ROLES.map((rol) => (
+            <Link key={rol.a} className="role" to={rol.a}>
+              <span className="role-ic" style={{ background: rol.fondo, color: rol.color }}>
+                <Icono nombre={rol.icono} tamano="xl" />
+              </span>
+              <span style={{ fontSize: 24, fontWeight: 700 }}>{rol.titulo}</span>
+              <span style={{ color: 'var(--c-ink-2)', flexGrow: 1 }}>{rol.texto}</span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 700, color: 'var(--c-primary)' }}>
+                {rol.accion}
+                <Icono nombre="adelante" />
+              </span>
+            </Link>
+          ))}
         </div>
       </main>
     </div>

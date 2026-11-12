@@ -12,7 +12,6 @@ const enviar = (method: string, body?: unknown): RequestInit => ({
 })
 
 // Endpoints que usan las vistas del repartidor y del cliente.
-// La gestión del comercio (pedidos, asignación, ABM) está en el panel Django (web/).
 export const api = {
   comercios: () => pedirApi<Comercio[]>('/api/comercios/'),
 
