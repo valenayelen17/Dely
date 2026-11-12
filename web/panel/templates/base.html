@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block titulo %}Panel{% endblock %} · DELY</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.11.0/styles/overlayscrollbars.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@4.10.0/dist/css/adminlte.min.css" />
+    <style>
+        .codigo { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .04em; }
+        .tarjeta-pedido { transition: box-shadow .15s; }
+        .tarjeta-pedido:hover { box-shadow: 0 .25rem .75rem rgba(0,0,0,.12); }
+        .columna-estado { min-height: 120px; }
+    </style>
+</head>
+<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
+    <div class="app-wrapper">
+        <!--begin::Header-->
+        <nav class="app-header navbar navbar-expand bg-body">
+            <div class="container-fluid">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button" aria-label="Mostrar u ocultar el menú">
+                            <i class="bi bi-list"></i>
+                        </a>
+                    </li>
+                    <li class="nav-item d-none d-md-block">
+                        <a href="{% url 'nuevo_pedido' %}" class="nav-link">
+                            <i class="bi bi-plus-lg me-1" aria-hidden="true"></i> Nuevo pedido
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <span class="nav-link">
+                            <i class="bi bi-shop me-1" aria-hidden="true"></i>
+                            {{ comercio.nombre|default:"DELY" }} · Encargado
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+        <!--end::Header-->
+
+        <!--begin::Sidebar-->
+        <aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
+            <div class="sidebar-brand">
+                <a href="{% url 'pendientes' %}" class="brand-link">
+                    <i class="bi bi-box-arrow-in-right fs-4 me-2 text-success" aria-hidden="true"></i>
+                    <span class="brand-text fw-bold">DELY</span>
+                </a>
+            </div>
+            <div class="sidebar-wrapper">
+                <nav class="mt-2">
+                    <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="navigation" aria-label="Menú principal">
+                        <li class="nav-header">COMERCIO</li>
+                        <li class="nav-item">
+                            <a href="{% url 'pendientes' %}" class="nav-link {% if seccion == 'pendientes' or seccion == 'pedido_detalle' %}active{% endif %}">
+                                <i class="nav-icon bi bi-kanban"></i>
+                                <p>Pedidos pendientes</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'nuevo_pedido' %}" class="nav-link {% if seccion == 'nuevo_pedido' %}active{% endif %}">
+                                <i class="nav-icon bi bi-plus-circle"></i>
+                                <p>Nuevo pedido</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'repartidores' %}" class="nav-link {% if seccion == 'repartidores' %}active{% endif %}">
+                                <i class="nav-icon bi bi-truck"></i>
+                                <p>Repartidores</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{% url 'historial' %}" class="nav-link {% if seccion == 'historial' %}active{% endif %}">
+                                <i class="nav-icon bi bi-clock-history"></i>
+                                <p>Historial</p>
+                            </a>
+                        </li>
+                        <li class="nav-header">OTRAS VISTAS</li>
+                        <li class="nav-item">
+                            <a href="{{ frontend_url }}/repartidor" class="nav-link" target="_blank" rel="noopener">
+                                <i class="nav-icon bi bi-phone"></i>
+                                <p>Repartidor <i class="bi bi-box-arrow-up-right small"></i></p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ frontend_url }}/seguimiento" class="nav-link" target="_blank" rel="noopener">
+                                <i class="nav-icon bi bi-geo-alt"></i>
+                                <p>Seguimiento del cliente <i class="bi bi-box-arrow-up-right small"></i></p>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </aside>
+        <!--end::Sidebar-->
+
+        <!--begin::App Main-->
+        <main class="app-main">
+            <div class="app-content-header">
+                <div class="container-fluid">
+                    <div class="row align-items-center">
+                        <div class="col-sm-8">
+                            <h3 class="mb-0">{% block encabezado %}{% endblock %}</h3>
+                            <p class="text-body-secondary mb-0">{% block bajada %}{% endblock %}</p>
+                        </div>
+                        <div class="col-sm-4 text-sm-end mt-2 mt-sm-0">{% block acciones %}{% endblock %}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="app-content">
+                <div class="container-fluid">
+                    {% for mensaje in messages %}
+                    <div class="alert alert-{% if mensaje.tags == 'error' %}danger{% else %}{{ mensaje.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                        <i class="bi {% if mensaje.tags == 'error' %}bi-exclamation-triangle{% else %}bi-check-circle{% endif %} me-1"></i>
+                        {{ mensaje }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+                    </div>
+                    {% endfor %}
+                    {% block contenido %}{% endblock %}
+                </div>
+            </div>
+        </main>
+        <!--end::App Main-->
+
+        <footer class="app-footer">
+            <div class="float-end d-none d-sm-inline">Panel Django · consume la API FastAPI de DELY</div>
+            <strong>DELY</strong> · Análisis y Metodologías de Sistemas
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.11.0/browser/overlayscrollbars.browser.es6.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/admin-lte@4.10.0/dist/js/adminlte.min.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
