@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load dely %}
+{% block titulo %}Historial{% endblock %}
+{% block encabezado %}Historial{% endblock %}
+{% block bajada %}{{ cantidad_entregados }} pedido{{ cantidad_entregados|pluralize }} entregado{{ cantidad_entregados|pluralize }} por {{ facturado|pesos }}.{% endblock %}
+
+{% block contenido %}
+<div class="d-flex gap-2 mb-3">
+    <a href="{% url 'historial' %}" class="btn btn-sm {% if not filtro %}btn-dark{% else %}btn-outline-secondary{% endif %}">Todos</a>
+    <a href="?estado=entregados" class="btn btn-sm {% if filtro == 'entregados' %}btn-dark{% else %}btn-outline-secondary{% endif %}">Entregados</a>
+    <a href="?estado=cancelados" class="btn btn-sm {% if filtro == 'cancelados' %}btn-dark{% else %}btn-outline-secondary{% endif %}">Cancelados</a>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0">
+            <thead><tr><th>Código</th><th>Fecha</th><th>Cliente</th><th>Zona</th><th>Repartidor</th><th>Entregado</th><th class="text-end">Total</th><th>Estado</th></tr></thead>
+            <tbody>
+                {% for p in pedidos %}
+                <tr>
+                    <td><a href="{% url 'pedido_detalle' p.id_pedido %}" class="codigo">{{ p.codigo_seguimiento }}</a></td>
+                    <td>{{ p.fecha_pedido }}</td>
+                    <td>{{ p.cliente.nombre }} {{ p.cliente.apellido }}</td>
+                    <td><span class="badge text-bg-light border">{{ p.zona }}</span></td>
+                    <td>{{ p.entrega.repartidor.nombre|default:"—" }}</td>
+                    <td>{{ p.entrega.hora_entrega|hora }}</td>
+                    <td class="text-end">{{ p.total|pesos }}</td>
+                    <td><span class="badge text-bg-{{ p.estado|color_estado }}"><i class="bi {{ p.estado|icono_estado }}"></i> {{ p.estado }}</span></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center text-body-secondary py-4">No hay pedidos cerrados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -24,19 +24,23 @@ Trabajo práctico de Análisis y Metodologías de Sistemas. Integrantes: Marco P
 
 ```
 Dely/
-├── backend/        API REST (FastAPI + SQLAlchemy + MySQL)
-├── frontend/       Interfaz web (React + TypeScript + Vite)
+├── backend/        API REST (FastAPI + SQLAlchemy + MySQL): datos y reglas de negocio
+├── web/            Panel del encargado (Django + AdminLTE), consume la API con requests
+├── frontend/       Vistas mobile del repartidor y del cliente (React + TypeScript + Vite)
 ├── docs/capturas/  Capturas de pantalla usadas en este README
-└── .github/        CI: tests del backend, lint y build del frontend
+└── .github/        CI: tests del backend y del panel, lint y build del frontend
 ```
 
 ## Tecnologías
 
 | Parte | Stack |
 |---|---|
-| Backend | Python 3.11+, FastAPI, SQLAlchemy 2, MySQL (PyMySQL), Pydantic, pytest |
-| Frontend | React 19, TypeScript, Vite, React Router |
-| Calidad | GitHub Actions: `pytest` en el backend, `oxlint` y build en el frontend |
+| API (`backend/`) | Python 3.11+, FastAPI, SQLAlchemy 2, MySQL (PyMySQL), Pydantic, pytest |
+| Panel del encargado (`web/`) | Django 6.1, templates con AdminLTE 4 + Bootstrap 5 + Bootstrap Icons, `requests`, `python-dotenv` |
+| Repartidor y cliente (`frontend/`) | React 19, TypeScript, Vite, React Router |
+| Calidad | GitHub Actions: `pytest` en la API, `manage.py test` en el panel, `oxlint` y build en el frontend |
+
+El esquema sigue el que vimos en clase: **Django consume una API FastAPI** a partir de un `API_URL` definido en el `.env`, y la API es la única que accede a la base de datos.
 
 ## Cómo ejecutarlo
 
@@ -50,6 +54,12 @@ py -m venv .venv
 Copy-Item .env.example .env          # configurar DATABASE_URL con la cuenta de MySQL
 .\.venv\Scripts\python.exe seed.py   # opcional: carga datos de demo
 
+# Panel Django
+cd ..\web
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+Copy-Item .env.example .env          # API_URL apunta a la API local
+
 # Frontend
 cd ..\frontend
 npm install
@@ -57,40 +67,42 @@ npm install
 
 La base y las tablas se crean solas al iniciar la API. Para probar sin MySQL se puede usar SQLite poniendo `DATABASE_URL=sqlite:///./dely.db` en el `.env`.
 
-### Día a día (dos terminales)
+### Día a día (tres terminales)
 
 ```powershell
-# 1. Backend: http://127.0.0.1:8000 (documentación interactiva en /docs)
+# 1. API: http://127.0.0.1:8000 (documentación interactiva en /docs)
 cd backend
 .\.venv\Scripts\python.exe -m uvicorn api:app --reload
 
-# 2. Frontend: http://localhost:5173
+# 2. Panel del encargado (Django): http://127.0.0.1:8001
+cd web
+.\.venv\Scripts\python.exe manage.py runserver 8001
+
+# 3. Vistas del repartidor y del cliente (React): http://localhost:5173
 cd frontend
 npm run dev
 ```
 
-Para la demo conviene abrir tres ventanas: <http://localhost:5173/comercio>, <http://localhost:5173/repartidor> y <http://localhost:5173/seguimiento>. Las pantallas de pedidos, entregas y seguimiento se refrescan cada 5 segundos, así que los cambios de un rol se ven en vivo en los otros.
+Para la demo conviene abrir tres ventanas: el panel en <http://127.0.0.1:8001>, el repartidor en <http://localhost:5173/repartidor> y el cliente en <http://localhost:5173/seguimiento>. Las vistas del repartidor y del cliente se refrescan cada 5 segundos, así que los cambios que hace el encargado se ven en vivo.
 
-Más detalle (endpoints, tests, estructura del front) en [backend/README.md](backend/README.md) y [frontend/README.md](frontend/README.md).
+Más detalle (endpoints, tests, estructura de cada parte) en [backend/README.md](backend/README.md), [web/README.md](web/README.md) y [frontend/README.md](frontend/README.md).
 
 ## Arquitectura MVC
 
 ```mermaid
 flowchart LR
-    subgraph Vista
-        F[Frontend React<br/>vistas por rol]
-        S[schemas.py<br/>entrada y salida de la API]
+    subgraph Clientes de la API
+        W[Panel Django web/<br/>controllers + templates]
+        F[Frontend React<br/>repartidor y cliente]
     end
-    subgraph Controlador
-        R[routers/<br/>endpoints HTTP]
-    end
-    subgraph Negocio
+    subgraph API FastAPI backend/
+        R[routers/<br/>controladores HTTP]
+        S[schemas.py<br/>entrada y salida]
         SV[services/<br/>asignación, stock,<br/>recorrido, notificaciones]
-    end
-    subgraph Modelo
         M[models.py + estados.py<br/>entidades ORM]
-        DB[(MySQL)]
     end
+    DB[(MySQL)]
+    W -- "requests + API_URL" --> R
     F -- "fetch /api" --> R
     R -- valida con --> S
     R --> SV
@@ -98,14 +110,16 @@ flowchart LR
     M --> DB
 ```
 
-| Capa | Archivos | Rol |
-|---|---|---|
-| Modelo | `models.py`, `estados.py`, `database.py` | Entidades del DER, estados y conexión a la base |
-| Vista | `frontend/`, `schemas.py` | Lo que ve cada usuario y qué datos entran y salen de la API |
-| Controlador | `routers/` | Reciben el pedido HTTP y delegan en los servicios |
-| Reglas de negocio | `services/` | Asignación por zona, recorrido de la entrega, stock, notificaciones y seguimiento |
+El MVC se aplica en las dos capas:
 
-`errores.py` traduce los errores de negocio a respuestas HTTP: 404 si no existe, 409 si hay un conflicto de estado y 422 si los datos no son válidos.
+| Capa | API (`backend/`) | Panel Django (`web/`) |
+|---|---|---|
+| Modelo | `models.py`, `estados.py`, `database.py`: entidades del DER y conexión a la base | `panel/src/services.py`: obtiene y guarda los datos llamando a la API con `requests` |
+| Vista | `schemas.py`: qué datos entran y salen | `panel/templates/`: templates de Django con AdminLTE |
+| Controlador | `routers/`: reciben el pedido HTTP y delegan | `panel/controllers/`: vistas basadas en clase con `get` y `post` |
+| Reglas de negocio | `services/`: asignación por zona, recorrido, stock, notificaciones y seguimiento | — (siempre pasa por la API) |
+
+En la API, `errores.py` traduce los errores de negocio a respuestas HTTP: 404 si no existe, 409 si hay un conflicto de estado y 422 si los datos no son válidos. El panel muestra esos mensajes tal cual al encargado.
 
 ## Historias de usuario
 
@@ -149,6 +163,12 @@ sequenceDiagram
 ```
 
 ### 1. Comercio (encargado)
+
+El encargado trabaja desde el **panel Django** (`web/`, puerto 8001). El front React también tiene una versión de estas pantallas en `/comercio`, con las mismas funciones.
+
+| Panel Django: pendientes | Panel Django: asignación |
+|---|---|
+| ![Pendientes en Django](docs/capturas/12-django-pendientes.png) | ![Asignación en Django](docs/capturas/13-django-asignar.png) |
 
 **Tablero de pendientes (HU-01).** El encargado ve los pedidos activos en tres columnas (Pendiente, Asignado y En camino), ordenados por horario estimado. Puede filtrar por zona, y un aviso marca cuántos pedidos siguen sin repartidor. Cada tarjeta muestra el código, la dirección, el cliente, la cantidad de productos, el total y el repartidor.
 

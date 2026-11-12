@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block titulo %}Error{% endblock %}
+{% block encabezado %}No pudimos cargar la pantalla{% endblock %}
+{% block contenido %}
+<div class="callout callout-danger">
+    <h5><i class="bi bi-plug me-1"></i> Problema con la API</h5>
+    <p class="mb-2">{{ mensaje }}</p>
+    <a href="{{ request.path }}" class="btn btn-outline-danger btn-sm"><i class="bi bi-arrow-clockwise"></i> Reintentar</a>
+</div>
+{% endblock %}
