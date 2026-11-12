@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load dely %}
+{% block titulo %}Pedidos pendientes{% endblock %}
+{% block encabezado %}Pedidos pendientes{% endblock %}
+{% block bajada %}{{ total_activos }} pedido{{ total_activos|pluralize }} activo{{ total_activos|pluralize }}, ordenados por horario estimado.{% endblock %}
+{% block acciones %}
+<a href="{% url 'nuevo_pedido' %}" class="btn btn-success"><i class="bi bi-plus-lg"></i> Nuevo pedido</a>
+{% endblock %}
+
+{% block contenido %}
+<div class="row">
+    {% for estado, pedidos in columnas %}
+    <div class="col-12 col-sm-4">
+        <div class="info-box">
+            <span class="info-box-icon text-bg-{{ estado|color_estado }} shadow-sm"><i class="bi {{ estado|icono_estado }}"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">{{ estado }}</span>
+                <span class="info-box-number">{{ pedidos|length }}</span>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+    <a href="{% url 'pendientes' %}" class="btn btn-sm {% if not zona %}btn-dark{% else %}btn-outline-secondary{% endif %}">Todas las zonas</a>
+    {% for z in zonas %}
+    <a href="?zona={{ z|urlencode }}" class="btn btn-sm {% if zona == z %}btn-dark{% else %}btn-outline-secondary{% endif %}">{{ z }}</a>
+    {% endfor %}
+    {% if sin_repartidor %}
+    <span class="badge text-bg-warning ms-auto"><i class="bi bi-exclamation-triangle"></i> {{ sin_repartidor }} pedido{{ sin_repartidor|pluralize }} sin repartidor</span>
+    {% endif %}
+</div>
+
+<div class="row">
+    {% for estado, pedidos in columnas %}
+    <div class="col-lg-4">
+        <div class="card card-outline card-{{ estado|color_estado }} mb-4">
+            <div class="card-header">
+                <h3 class="card-title"><i class="bi {{ estado|icono_estado }} me-1"></i> {{ estado }}</h3>
+                <div class="card-tools"><span class="badge text-bg-{{ estado|color_estado }}">{{ pedidos|length }}</span></div>
+            </div>
+            <div class="card-body columna-estado">
+                {% for p in pedidos %}
+                <a href="{% url 'pedido_detalle' p.id_pedido %}" class="text-reset text-decoration-none">
+                    <div class="card tarjeta-pedido mb-3 {% if p.estado == 'Pendiente' %}border-warning{% endif %}">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="codigo small fw-semibold">{{ p.codigo_seguimiento }}</span>
+                                <span class="fw-semibold"><i class="bi bi-clock"></i> {{ p.horario_estimado|hora }}</span>
+                            </div>
+                            <div class="fw-semibold">{{ p.direccion_entrega }}</div>
+                            <div class="text-body-secondary small">{{ p.cliente.nombre }} {{ p.cliente.apellido }}</div>
+                            <div class="my-2">
+                                <span class="badge text-bg-light border">{{ p.zona }}</span>
+                                <span class="small text-body-secondary">{{ p.detalles|length }} producto{{ p.detalles|length|pluralize }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center border-top pt-2">
+                                {% if p.entrega %}
+                                <span class="small"><i class="bi bi-person-badge"></i> {{ p.entrega.repartidor.nombre }}</span>
+                                {% else %}
+                                <span class="small text-warning-emphasis"><i class="bi bi-exclamation-triangle"></i> Sin repartidor</span>
+                                {% endif %}
+                                <span class="fw-bold">{{ p.total|pesos }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                {% empty %}
+                <p class="text-body-secondary small text-center my-4">No hay pedidos en este estado.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
