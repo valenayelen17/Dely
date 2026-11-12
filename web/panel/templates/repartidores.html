@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block titulo %}Repartidores{% endblock %}
+{% block encabezado %}Repartidores{% endblock %}
+{% block bajada %}{{ en_turno }} de {{ repartidores|length }} en turno. Sólo los que están en turno se pueden asignar.{% endblock %}
+
+{% block contenido %}
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0">
+            <thead><tr><th>Repartidor</th><th>Teléfono</th><th>Zona</th><th>Estado</th><th class="text-end">Acción</th></tr></thead>
+            <tbody>
+                {% for r in repartidores %}
+                <tr>
+                    <td><i class="bi bi-person-badge me-1"></i> {{ r.nombre }} {{ r.apellido }}</td>
+                    <td>{{ r.telefono }}</td>
+                    <td><span class="badge text-bg-light border">{{ r.zona }}</span></td>
+                    <td>
+                        {% if r.disponible %}
+                        <span class="badge text-bg-success"><i class="bi bi-circle-fill small"></i> En turno</span>
+                        {% else %}
+                        <span class="badge text-bg-secondary">Fuera de turno</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <form method="post" action="{% url 'disponibilidad' r.id_repartidor %}" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="disponible" value="{% if r.disponible %}false{% else %}true{% endif %}">
+                            <button type="submit" class="btn btn-sm {% if r.disponible %}btn-outline-secondary{% else %}btn-outline-success{% endif %}">
+                                {% if r.disponible %}Sacar de turno{% else %}Poner en turno{% endif %}
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center text-body-secondary py-4">No hay repartidores cargados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
