@@ -17,8 +17,6 @@ const VISUAL: Record<Estado, { clase: string; icono: NombreIcono }> = {
 
 export const visualEstado = (estado: Estado) => VISUAL[estado]
 
-export const ESTADOS_ACTIVOS: EstadoPedido[] = ['Pendiente', 'Asignado', 'En camino']
-
 export const TITULO_NOTIFICACION: Record<string, string> = {
   Recibido: 'Pedido recibido',
   Asignada: 'Repartidor asignado',

@@ -1,26 +1,28 @@
 # DELY — Frontend
 
-React + TypeScript + Vite. Consume la API de `backend/`. Usa una paleta verde azulado y la fuente Inter.
+React + TypeScript + Vite. Vistas mobile del **repartidor** y del **cliente**, que consumen la API de `backend/`. Usa una paleta verde azulado y la fuente Inter.
+
+La gestión del comercio (pedidos, asignación, repartidores, productos, clientes e historial) está en el **panel Django** de [`web/`](../web/README.md).
 
 ## Vistas
 
 | Rol | Ruta | Pantallas |
 |---|---|---|
-| Inicio | `/` | Selector de rol |
-| Encargado | `/comercio` | Pedidos pendientes (HU-01), detalle y asignación (HU-02), nuevo pedido, repartidores, productos, clientes, historial |
+| Inicio | `/` | Selector de rol. *Comercio* abre el panel Django |
 | Repartidor | `/repartidor` | ¿Quién sos?, mis entregas, detalle de la entrega (HU-04) |
 | Cliente | `/seguimiento` | Ingreso del código y seguimiento con aviso de llegada (HU-03, HU-05) |
 
-No hay login: cada rol entra desde el inicio. Las pantallas de pedidos, entregas y seguimiento se refrescan cada 5 segundos, así que con tres ventanas abiertas (comercio, repartidor y cliente) los cambios se ven en vivo.
+No hay login: cada rol entra desde el inicio. Las pantallas de entregas y seguimiento se refrescan cada 5 segundos, así que los cambios que hace el encargado en el panel se ven en vivo. Los links viejos a `/comercio` redirigen al panel.
 
 ## Estructura
 
 | Carpeta | Contenido |
 |---|---|
 | `src/api` | Cliente HTTP, tipos de la API y una función por endpoint |
-| `src/hooks` | `useApi` (carga con refresco), toasts y contexto del comercio |
+| `src/hooks` | `useApi` (carga con refresco) y toasts |
 | `src/components` | Componentes compartidos: badge de estado, pasos, iconos, toasts |
-| `src/vistas` | Una carpeta por rol: `encargado`, `repartidor`, `cliente` |
+| `src/lib` | Formatos, estados y la URL del panel Django |
+| `src/vistas` | Una carpeta por rol: `repartidor` y `cliente` |
 | `src/styles` | Tokens y estilos del diseño (`dely.css`) y ajustes de la app (`app.css`) |
 
 ## Ejecutar
@@ -35,7 +37,7 @@ npm run dev
 
 Abrí <http://localhost:5173>. En desarrollo, Vite redirige `/api` al backend (ver `vite.config.ts`), así que no hace falta configurar nada más.
 
-Para apuntar a otra URL de la API, definí `VITE_API_URL` en `frontend/.env.local`.
+Para apuntar a otra URL de la API, definí `VITE_API_URL` en `frontend/.env.local`. Si el panel Django no corre en `http://127.0.0.1:8001`, definí `VITE_PANEL_URL`.
 
 ## Scripts
 

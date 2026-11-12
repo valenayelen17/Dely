@@ -28,16 +28,6 @@ export interface Repartidor {
   comercio_id: number
 }
 
-export interface Producto {
-  id_producto: number
-  nombre: string
-  descripcion: string | null
-  precio: string
-  categoria: string
-  stock: number
-  comercio_id: number
-}
-
 export type ClienteResumen = Pick<Cliente, 'id_cliente' | 'nombre' | 'apellido' | 'telefono'>
 export type RepartidorResumen = Pick<Repartidor, 'id_repartidor' | 'nombre' | 'apellido' | 'telefono' | 'zona'>
 
@@ -104,17 +94,4 @@ export interface Seguimiento {
   productos: { nombre: string; cantidad: number; subtotal: string }[]
   total: string
   notificaciones: Notificacion[]
-}
-
-export type DatosCliente = Omit<Cliente, 'id_cliente'>
-export type DatosRepartidor = Omit<Repartidor, 'id_repartidor'>
-export type DatosProducto = Omit<Producto, 'id_producto' | 'precio'> & { precio: string | number }
-
-export interface DatosPedido {
-  comercio_id: number
-  cliente_id: number
-  zona: string
-  horario_estimado: string
-  direccion_entrega?: string
-  detalles: { producto_id: number; cantidad: number }[]
 }
