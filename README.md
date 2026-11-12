@@ -40,7 +40,7 @@ Dely/
 | Repartidor y cliente (`frontend/`) | React 19, TypeScript, Vite, React Router |
 | Calidad | GitHub Actions: `pytest` en la API, `manage.py test` en el panel, `oxlint` y build en el frontend |
 
-El esquema sigue el que vimos en clase: **Django consume una API FastAPI** a partir de un `API_URL` definido en el `.env`, y la API es la única que accede a la base de datos.
+El esquema sigue el que vimos en clase: **Django consume una API FastAPI** a partir de un `API_URL` definido en el `.env`, y la API es la única que accede a la base de datos. El panel Django y el front React son **aplicaciones separadas**: no se enlazan entre sí y sólo comparten la API.
 
 ## Cómo ejecutarlo
 
@@ -133,9 +133,9 @@ En la API, `errores.py` traduce los errores de negocio a respuestas HTTP: 404 si
 
 ## Flujos del sistema
 
-La aplicación no tiene login: desde el inicio cada usuario elige su rol.
+No hay login. El encargado usa el panel Django (<http://127.0.0.1:8001>). El repartidor y el cliente usan el front React (<http://localhost:5173>), donde eligen su rol desde el inicio.
 
-![Pantalla de inicio con los tres roles](docs/capturas/01-inicio.png)
+![Inicio del front con los roles de repartidor y cliente](docs/capturas/01-inicio.png)
 
 ### Flujo completo de un pedido
 
@@ -164,7 +164,7 @@ sequenceDiagram
 
 ### 1. Comercio (encargado)
 
-El encargado trabaja desde el **panel Django** (`web/`, <http://127.0.0.1:8001>). Desde el inicio del front, la tarjeta *Comercio* abre el panel.
+El encargado trabaja desde el **panel Django** (`web/`, <http://127.0.0.1:8001>), una aplicación aparte de la del repartidor y el cliente.
 
 **Tablero de pendientes (HU-01).** El encargado ve los pedidos activos en tres columnas (Pendiente, Asignado y En camino), ordenados por horario estimado. Puede filtrar por zona, y un aviso marca cuántos pedidos siguen sin repartidor. Cada tarjeta muestra el código, la dirección, el cliente, la cantidad de productos, el total y el repartidor.
 

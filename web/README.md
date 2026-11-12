@@ -21,7 +21,6 @@ Abrí <http://127.0.0.1:8001>. Se usa el puerto 8001 porque la API ocupa el 8000
 | Variable (`.env`) | Para qué sirve |
 |---|---|
 | `API_URL` | URL base de la API, por ejemplo `http://127.0.0.1:8000/api/` |
-| `FRONTEND_URL` | Front React con las vistas del repartidor y del cliente (links del menú) |
 | `SECRET_KEY`, `DEBUG`, `ALLOWED_HOSTS` | Configuración estándar de Django |
 
 ### Tests
@@ -72,7 +71,7 @@ web/
 | `/clientes/` | Alta y edición de clientes, con buscador | — |
 | `/historial/` | Pedidos entregados y cancelados, con lo facturado | — |
 
-Todo lo del comercio está en este panel. Las vistas del **repartidor** y del **cliente** están en el front React (`frontend/`), pensado para el celular, y el menú del panel tiene links a esas vistas.
+Todo lo del comercio está en este panel. Es una aplicación independiente de las vistas del **repartidor** y del **cliente** (`frontend/`): no hay links entre una y otra, y las dos se comunican sólo a través de la API.
 
 | Asignación de repartidor | Edición de un repartidor |
 |---|---|
