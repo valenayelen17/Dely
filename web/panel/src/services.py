@@ -92,10 +92,15 @@ def cancelar_pedido(pedido_id: int) -> dict:
     return _pedir("PATCH", f"pedidos/{pedido_id}/cancelar")
 
 
-# --- Repartidores, clientes y productos ---------------------------------------
+def editar_pedido(pedido_id: int, datos: dict) -> dict:
+    """Sólo para pedidos Pendientes: dirección, zona y horario."""
+    return _pedir("PUT", f"pedidos/{pedido_id}", json=datos)
+
+
+# --- Repartidores -------------------------------------------------------------
 
 def listar_repartidores(comercio_id: int, zona: str | None = None, disponible: bool | None = None) -> list[dict]:
-    params = {"comercio_id": comercio_id}
+    params = {"comercio_id": comercio_id, "limit": 500}
     if zona:
         params["zona"] = zona
     if disponible is not None:
@@ -103,13 +108,53 @@ def listar_repartidores(comercio_id: int, zona: str | None = None, disponible: b
     return _pedir("GET", "repartidores/", params=params)
 
 
+def obtener_repartidor(repartidor_id: int) -> dict:
+    return _pedir("GET", f"repartidores/{repartidor_id}")
+
+
+def crear_repartidor(datos: dict) -> dict:
+    return _pedir("POST", "repartidores/", json=datos)
+
+
+def editar_repartidor(repartidor_id: int, datos: dict) -> dict:
+    return _pedir("PUT", f"repartidores/{repartidor_id}", json=datos)
+
+
 def cambiar_disponibilidad(repartidor_id: int, disponible: bool) -> dict:
     return _pedir("PATCH", f"repartidores/{repartidor_id}/disponibilidad", json={"disponible": disponible})
 
+
+# --- Clientes -----------------------------------------------------------------
 
 def listar_clientes() -> list[dict]:
     return _pedir("GET", "clientes/", params={"limit": 500})
 
 
+def obtener_cliente(cliente_id: int) -> dict:
+    return _pedir("GET", f"clientes/{cliente_id}")
+
+
+def crear_cliente(datos: dict) -> dict:
+    return _pedir("POST", "clientes/", json=datos)
+
+
+def editar_cliente(cliente_id: int, datos: dict) -> dict:
+    return _pedir("PUT", f"clientes/{cliente_id}", json=datos)
+
+
+# --- Productos ----------------------------------------------------------------
+
 def listar_productos(comercio_id: int) -> list[dict]:
     return _pedir("GET", "productos/", params={"comercio_id": comercio_id, "limit": 500})
+
+
+def obtener_producto(producto_id: int) -> dict:
+    return _pedir("GET", f"productos/{producto_id}")
+
+
+def crear_producto(datos: dict) -> dict:
+    return _pedir("POST", "productos/", json=datos)
+
+
+def editar_producto(producto_id: int, datos: dict) -> dict:
+    return _pedir("PUT", f"productos/{producto_id}", json=datos)
