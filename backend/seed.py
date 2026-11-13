@@ -91,7 +91,7 @@ def cargar(db: Session) -> bool:
     p5 = pedido(bruno, "Palermo", time(19, 30), [(muzza, 2)])
     avanzar(p5.id_pedido, lucia, EstadoEntrega.EN_CAMINO, EstadoEntrega.LLEGANDO)
     p6 = pedido(carla, "Caballito", time(19, 0), [(jyq, 3), (gaseosa, 1)])
-    avanzar(p6.id_pedido, martin, EstadoEntrega.EN_CAMINO, EstadoEntrega.ENTREGADA)
+    avanzar(p6.id_pedido, martin, EstadoEntrega.EN_CAMINO, EstadoEntrega.LLEGANDO, EstadoEntrega.ENTREGADA)
     p7 = pedido(ana, "Centro", time(21, 30), [(faina, 4)])
     pedidos.cancelar_pedido(db, p7.id_pedido)
     return True
