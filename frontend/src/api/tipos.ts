@@ -1,4 +1,28 @@
-export type EstadoPedido = 'Pendiente' | 'Asignado' | 'En camino' | 'Entregado' | 'Cancelado'
+export type Rol = 'encargado' | 'repartidor' | 'cliente'
+
+export interface Usuario {
+  id_usuario: number
+  email: string
+  rol: Rol
+  nombre: string
+  repartidor_id: number | null
+  cliente_id: number | null
+}
+
+export interface Sesion {
+  token: string
+  expira: string
+  usuario: Usuario
+}
+
+export interface RespuestaLogin {
+  access_token: string
+  token_type: string
+  expira: string
+  usuario: Usuario
+}
+
+export type EstadoPedido ='Pendiente' | 'Asignado' | 'En camino' | 'Entregado' | 'Cancelado'
 export type EstadoEntrega = 'Asignada' | 'En camino' | 'Llegando' | 'Entregada' | 'Cancelada'
 
 export interface Comercio {
