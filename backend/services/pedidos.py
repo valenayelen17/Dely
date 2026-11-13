@@ -27,6 +27,20 @@ def mismas_zonas(zona_a: str, zona_b: str) -> bool:
     return zona_a.strip().casefold() == zona_b.strip().casefold()
 
 
+def zona_cubierta(db: Session, comercio_id: int, zona: str) -> str:
+    """Devuelve la zona tal como la tiene cargada algún repartidor del comercio (misma grafía).
+
+    Si nadie la cubre, el pedido sería imposible de asignar, así que se rechaza.
+    """
+    repartidores = db.scalars(select(Repartidor).where(Repartidor.comercio_id == comercio_id)).all()
+    for repartidor in repartidores:
+        if mismas_zonas(repartidor.zona, zona):
+            return repartidor.zona
+    zonas = sorted({r.zona for r in repartidores}, key=str.casefold)
+    disponibles = f" Zonas con repartidores: {', '.join(zonas)}." if zonas else " El comercio todavía no tiene repartidores."
+    raise DatoInvalido(f"Ningún repartidor cubre la zona {zona.strip()}.{disponibles}")
+
+
 def crear_pedido(db: Session, datos: PedidoCreate) -> Pedido:
     if db.get(Comercio, datos.comercio_id) is None:
         raise NoEncontrado("Comercio no encontrado.")
@@ -39,7 +53,7 @@ def crear_pedido(db: Session, datos: PedidoCreate) -> Pedido:
     pedido = Pedido(
         fecha_pedido=datos.fecha_pedido,
         direccion_entrega=datos.direccion_entrega or cliente.direccion,
-        zona=datos.zona,
+        zona=zona_cubierta(db, datos.comercio_id, datos.zona),
         horario_estimado=datos.horario_estimado,
         cliente_id=cliente.id_cliente,
         comercio_id=datos.comercio_id,
@@ -74,6 +88,7 @@ def actualizar_pedido(db: Session, pedido_id: int, datos: PedidoUpdate) -> Pedid
         raise Conflicto("Solo se pueden editar pedidos pendientes de asignación.")
     for campo, valor in datos.model_dump().items():
         setattr(pedido, campo, valor)
+    pedido.zona = zona_cubierta(db, pedido.comercio_id, datos.zona)
     db.commit()
     return obtener_pedido(db, pedido_id)
 
@@ -92,6 +107,8 @@ def asignar_repartidor(db: Session, pedido_id: int, repartidor_id: int) -> Pedid
         raise Conflicto("El repartidor no está disponible.")
     if not mismas_zonas(repartidor.zona, pedido.zona):
         raise Conflicto("El repartidor no cubre la zona de entrega del pedido.")
+    if pedido.entrega is not None and pedido.entrega.repartidor_id == repartidor_id:
+        raise Conflicto(f"El pedido ya está asignado a {repartidor.nombre} {repartidor.apellido}.")
 
     if pedido.entrega is None:
         pedido.entrega = Entrega(estado=EstadoEntrega.ASIGNADA)

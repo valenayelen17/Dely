@@ -24,12 +24,13 @@ class AccesoController(ControladorDely):
     def obtener(self, pk) -> dict:
         raise NotImplementedError
 
-    def renderizar(self, request, form, persona, cuenta, status=200):
+    def renderizar(self, request, form, persona, cuenta, pk, status=200):
         contexto = {
             "form": form,
             "persona": persona,
             "cuenta": cuenta,
             "rol": self.rol,
+            "persona_id": pk,
             "volver": reverse(self.url_volver),
         }
         return render(request, self.template, contexto, status=status)
@@ -38,7 +39,7 @@ class AccesoController(ControladorDely):
         persona = self.obtener(pk)
         cuenta = accesos_por_persona(self.rol).get(pk)
         inicial = {"email": cuenta["email"] if cuenta else persona.get("email", "")}
-        return self.renderizar(request, AccesoForm(initial=inicial), persona, cuenta)
+        return self.renderizar(request, AccesoForm(initial=inicial), persona, cuenta, pk)
 
     def post(self, request, pk):
         persona = self.obtener(pk)
@@ -52,7 +53,23 @@ class AccesoController(ControladorDely):
                 messages.success(request, f"{persona['nombre']} {persona['apellido']} ya puede iniciar sesión con {form.cleaned_data['email']}.")
                 return redirect(self.url_volver)
         cuenta = accesos_por_persona(self.rol).get(pk)
-        return self.renderizar(request, form, persona, cuenta, status=400)
+        return self.renderizar(request, form, persona, cuenta, pk, status=400)
+
+
+class QuitarAccesoController(ControladorDely):
+    """Desactiva la cuenta de un repartidor o un cliente."""
+
+    rol = ""
+    url_volver = ""
+
+    def post(self, request, pk):
+        try:
+            services.quitar_acceso(self.rol, pk)
+        except ErrorApi as error:
+            messages.error(request, str(error))
+        else:
+            messages.success(request, "Acceso desactivado. Para volver a habilitarlo, asignale credenciales de nuevo.")
+        return redirect(self.url_volver)
 
 
 class AccesoRepartidorController(AccesoController):
@@ -63,9 +80,19 @@ class AccesoRepartidorController(AccesoController):
         return services.obtener_repartidor(pk)
 
 
+class QuitarAccesoRepartidorController(QuitarAccesoController):
+    rol = "repartidor"
+    url_volver = "repartidores"
+
+
 class AccesoClienteController(AccesoController):
     rol = "cliente"
     url_volver = "clientes"
 
     def obtener(self, pk):
         return services.obtener_cliente(pk)
+
+
+class QuitarAccesoClienteController(QuitarAccesoController):
+    rol = "cliente"
+    url_volver = "clientes"

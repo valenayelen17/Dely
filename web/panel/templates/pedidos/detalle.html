@@ -97,7 +97,7 @@ Pedido <span class="codigo">{{ pedido.codigo_seguimiento }}</span>
                     <button type="submit" class="btn btn-primary w-100"><i class="bi bi-person-check"></i> Asignar</button>
                 </form>
                 {% else %}
-                <div class="alert alert-warning mb-0 small">No hay repartidores en turno en {{ pedido.zona }}. Podés ponerlos en turno desde <a href="{% url 'repartidores' %}">Repartidores</a>.</div>
+                <div class="alert alert-warning mb-0 small">No hay {% if entrega %}otro repartidor{% else %}repartidores{% endif %} en turno en {{ pedido.zona }}. Podés ponerlos en turno desde <a href="{% url 'repartidores' %}">Repartidores</a>.</div>
                 {% endif %}
                 {% elif not entrega %}
                 <p class="text-body-secondary mb-0">El pedido no tiene repartidor.</p>

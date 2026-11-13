@@ -24,7 +24,8 @@ Abrí <http://127.0.0.1:8001> e iniciá sesión con una cuenta de **encargado** 
 - El JWT se guarda en la sesión de Django, que es una cookie firmada y `HttpOnly`. No hace falta base de datos.
 - `panel/middleware.py` pone el token a disposición de `services.py`, que lo manda en el header `Authorization` de cada llamada con `requests`.
 - Toda pantalla exige sesión (`ControladorDely`). Si la API responde 401 (token vencido), el panel cierra la sesión y vuelve al login.
-- Desde *Repartidores* y *Clientes*, el botón de la llave crea la cuenta de esa persona o le cambia la contraseña.
+- Desde *Repartidores* y *Clientes*, el botón de la llave crea la cuenta de esa persona, le cambia la contraseña o le quita el acceso. Las cuentas desactivadas se ven marcadas en el listado.
+- Los formularios validan nombres, teléfonos y contraseñas con las mismas reglas que la API, y muestran tal cual los rechazos de negocio que la API devuelve (por ejemplo, sacar de turno a un repartidor con entregas activas).
 
 | Variable (`.env`) | Para qué sirve |
 |---|---|

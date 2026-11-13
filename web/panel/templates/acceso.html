@@ -2,7 +2,9 @@
 {% block titulo %}Acceso{% endblock %}
 {% block encabezado %}Acceso de {{ persona.nombre }} {{ persona.apellido }}{% endblock %}
 {% block bajada %}
-{% if cuenta %}Ya tiene cuenta ({{ cuenta.email }}). Guardar reemplaza la contraseña.{% else %}Todavía no puede iniciar sesión. Creale una cuenta.{% endif %}
+{% if cuenta and cuenta.activo %}Ya tiene cuenta ({{ cuenta.email }}). Guardar reemplaza la contraseña y cierra sus sesiones abiertas.
+{% elif cuenta %}La cuenta {{ cuenta.email }} está desactivada. Guardar la vuelve a habilitar con la contraseña nueva.
+{% else %}Todavía no puede iniciar sesión. Creale una cuenta.{% endif %}
 {% endblock %}
 {% block acciones %}
 <a href="{{ volver }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
@@ -30,10 +32,24 @@
                 {% endfor %}
             </div>
             <div class="card-footer d-flex gap-2">
-                <button type="submit" class="btn btn-success"><i class="bi bi-check-lg"></i> {% if cuenta %}Cambiar contraseña{% else %}Crear cuenta{% endif %}</button>
+                <button type="submit" class="btn btn-success"><i class="bi bi-check-lg"></i> {% if cuenta and cuenta.activo %}Cambiar contraseña{% elif cuenta %}Reactivar cuenta{% else %}Crear cuenta{% endif %}</button>
                 <a href="{{ volver }}" class="btn btn-link">Cancelar</a>
             </div>
         </form>
     </div>
+    {% if cuenta and cuenta.activo %}
+    <div class="col-lg-6">
+        <div class="card card-outline card-danger">
+            <div class="card-body">
+                <h6><i class="bi bi-person-x me-1"></i> Quitar acceso</h6>
+                <p class="small text-body-secondary">La cuenta queda desactivada: no va a poder iniciar sesión y sus sesiones abiertas dejan de servir. Podés volver a habilitarla desde esta pantalla.</p>
+                <form method="post" action="{% url rol|add:'_quitar_acceso' persona_id %}" onsubmit="return confirm('¿Quitar el acceso de {{ persona.nombre }} {{ persona.apellido }}?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger">Quitar acceso</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

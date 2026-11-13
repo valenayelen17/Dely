@@ -1,7 +1,7 @@
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from estados import EstadoEntrega, EstadoPedido, Rol
 
@@ -10,11 +10,55 @@ class Schema(BaseModel):
     model_config = ConfigDict(from_attributes=True, str_strip_whitespace=True)
 
 
+# --- Validaciones compartidas ----------------------------------------------------
+
+DIAS_MAXIMOS_PEDIDO = 7
+
+
+def validar_nombre(valor: str) -> str:
+    """Nombres y apellidos: letras, espacios, apóstrofos, puntos y guiones."""
+    if not all(c.isalpha() or c in " '.-" for c in valor) or not any(c.isalpha() for c in valor):
+        raise ValueError("sólo puede tener letras, espacios, apóstrofos y guiones.")
+    return " ".join(valor.split())
+
+
+def validar_telefono(valor: str) -> str:
+    """Teléfonos: dígitos y, opcionalmente, espacios, +, guiones y paréntesis. Al menos 6 dígitos."""
+    if not all(c.isdigit() or c in " +()-" for c in valor) or sum(c.isdigit() for c in valor) < 6:
+        raise ValueError("tiene que tener al menos 6 dígitos y sólo puede incluir espacios, +, guiones y paréntesis.")
+    return valor
+
+
+def validar_password(valor: str) -> str:
+    """Contraseñas: 8 caracteres como mínimo, con al menos una letra y un número."""
+    if len(valor) < 8 or not any(c.isalpha() for c in valor) or not any(c.isdigit() for c in valor):
+        raise ValueError("tiene que tener al menos 8 caracteres, con una letra y un número.")
+    return valor
+
+
+def email_en_minusculas(valor: str) -> str:
+    return valor.lower()
+
+
+class PersonaFields(Schema):
+    """Campos comunes a clientes y repartidores, con sus validaciones."""
+
+    nombre: str = Field(min_length=2, max_length=100)
+    apellido: str = Field(min_length=2, max_length=100)
+    telefono: str = Field(min_length=6, max_length=30)
+
+    _nombres = field_validator("nombre", "apellido")(validar_nombre)
+    _telefono = field_validator("telefono")(validar_telefono)
+
+
 class ComercioFields(Schema):
     nombre: str = Field(min_length=2, max_length=150)
     direccion: str = Field(min_length=3, max_length=255)
     telefono: str = Field(min_length=6, max_length=30)
     email: EmailStr
+
+    _telefono = field_validator("telefono")(validar_telefono)
+    _email = field_validator("email")(email_en_minusculas)
 
 
 class ComercioCreate(ComercioFields):
@@ -29,12 +73,11 @@ class ComercioOut(ComercioFields):
     id_comercio: int
 
 
-class ClienteFields(Schema):
-    nombre: str = Field(min_length=2, max_length=100)
-    apellido: str = Field(min_length=2, max_length=100)
-    telefono: str = Field(min_length=6, max_length=30)
+class ClienteFields(PersonaFields):
     email: EmailStr
     direccion: str = Field(min_length=3, max_length=255)
+
+    _email = field_validator("email")(email_en_minusculas)
 
 
 class ClienteCreate(ClienteFields):
@@ -49,10 +92,7 @@ class ClienteOut(ClienteFields):
     id_cliente: int
 
 
-class RepartidorFields(Schema):
-    nombre: str = Field(min_length=2, max_length=100)
-    apellido: str = Field(min_length=2, max_length=100)
-    telefono: str = Field(min_length=6, max_length=30)
+class RepartidorFields(PersonaFields):
     zona: str = Field(min_length=2, max_length=100)
     disponible: bool = True
     comercio_id: int = Field(gt=0)
@@ -126,6 +166,16 @@ class DetalleOut(Schema):
 
 class PedidoCreate(Schema):
     fecha_pedido: date = Field(default_factory=date.today)
+
+    @field_validator("fecha_pedido")
+    @classmethod
+    def _fecha_razonable(cls, valor: date) -> date:
+        hoy = date.today()
+        if valor < hoy:
+            raise ValueError("no puede ser anterior a hoy.")
+        if valor > hoy + timedelta(days=DIAS_MAXIMOS_PEDIDO):
+            raise ValueError(f"no puede ser más de {DIAS_MAXIMOS_PEDIDO} días en el futuro.")
+        return valor
     direccion_entrega: str | None = Field(default=None, min_length=3, max_length=255)
     zona: str = Field(min_length=2, max_length=100)
     horario_estimado: time
@@ -234,12 +284,15 @@ class LoginIn(Schema):
     # bcrypt sólo usa los primeros 72 bytes de la contraseña.
     password: str = Field(min_length=1, max_length=72)
 
+    _email = field_validator("email")(email_en_minusculas)
+
 
 class UsuarioOut(Schema):
     id_usuario: int
     email: EmailStr
     rol: Rol
     nombre: str
+    activo: bool
     repartidor_id: int | None
     cliente_id: int | None
 
@@ -255,4 +308,7 @@ class AccesoIn(Schema):
     """Credenciales que el encargado le asigna a un repartidor o a un cliente."""
 
     email: EmailStr
-    password: str = Field(min_length=6, max_length=72)
+    password: str = Field(max_length=72)
+
+    _email = field_validator("email")(email_en_minusculas)
+    _password = field_validator("password")(validar_password)

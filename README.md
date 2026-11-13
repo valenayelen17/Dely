@@ -150,11 +150,12 @@ sequenceDiagram
 | Repartidor | App React | Ver y avanzar **sólo sus** entregas, informar su ubicación |
 | Cliente | App React | Ver **sólo sus** pedidos, su seguimiento y sus notificaciones |
 
-- Las contraseñas se guardan con **bcrypt**; nunca en texto plano.
-- El token dura 8 horas (`JWT_HORAS`). Cuando vence, las dos aplicaciones vuelven al login.
+- Las contraseñas se guardan con **bcrypt**; nunca en texto plano. Tienen 8 caracteres como mínimo, con una letra y un número.
+- El token dura 8 horas (`JWT_HORAS`). Cuando vence, o cuando el encargado cambia la contraseña de esa cuenta, las dos aplicaciones vuelven al login.
+- Después de 5 intentos de login fallidos seguidos, la cuenta queda bloqueada 15 minutos (`LOGIN_MAX_INTENTOS`, `LOGIN_BLOQUEO_MINUTOS`).
 - El **panel Django** guarda el token en su sesión (cookie firmada, `HttpOnly`) y lo agrega en cada llamada con `requests`. Sólo deja entrar a cuentas de encargado.
 - La **app React** guarda el token en `localStorage` y lo manda en cada `fetch`. Rechaza las cuentas de encargado.
-- El encargado crea o cambia las credenciales de cada repartidor y cliente desde el panel (botón de la llave en *Repartidores* y *Clientes*).
+- El encargado crea o cambia las credenciales de cada repartidor y cliente desde el panel (botón de la llave en *Repartidores* y *Clientes*), y también puede quitar un acceso: la cuenta queda desactivada hasta que le asigne credenciales de nuevo.
 - Si un repartidor pide entregas de otro, la API responde 403. Si un cliente pide el pedido de otro, responde 404 y así no revela que el código existe.
 
 **Cuentas de demo** (las crea `seed.py`, contraseña `dely1234`):
@@ -283,10 +284,23 @@ stateDiagram-v2
 
 Reglas principales:
 
-- La entrega se crea al asignar el repartidor y se puede reasignar mientras siga en *Asignada*.
+- La entrega se crea al asignar el repartidor y se puede reasignar mientras siga en *Asignada* (a otro repartidor: reasignar al mismo se rechaza).
+- El repartidor no saltea estados: para entregar tiene que haber marcado *Llegando*, así el cliente siempre recibe el aviso.
 - El estado del pedido se deriva del de la entrega: el encargado no lo cambia a mano.
 - Sólo se editan pedidos *Pendientes*, y sólo se eliminan los *Pendientes* o *Cancelados*.
 - Un pedido *Entregado* no se puede cancelar. Cancelar devuelve el stock.
+
+### Validaciones
+
+La API es la única que aplica las reglas; el panel repite las de formato para avisar antes de enviar. Todas responden con un mensaje claro (422 si el dato no es válido, 409 si choca con el estado actual).
+
+| Sobre | Regla |
+|---|---|
+| Repartidor | No se lo puede sacar de turno, cambiarle la zona ni cambiarlo de comercio mientras tenga entregas activas. El teléfono no se repite entre repartidores. |
+| Pedido | La zona tiene que estar cubierta por algún repartidor del comercio (y se guarda con la misma grafía). La fecha es de hoy a 7 días. Cada producto va una sola vez y tiene que haber stock. |
+| Producto | El nombre no se repite dentro del comercio. No se cambia de comercio si ya forma parte de pedidos. |
+| Personas | Nombres y apellidos sólo con letras; teléfonos con al menos 6 dígitos. Los emails se guardan en minúsculas y no se repiten con otra grafía. |
+| Accesos | Contraseñas de 8 caracteres como mínimo, con una letra y un número. |
 
 ## Decisiones respecto del diseño del TP1
 

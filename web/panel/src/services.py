@@ -76,10 +76,17 @@ def listar_usuarios(rol: str) -> list[dict]:
     return _pedir("GET", "usuarios/", params={"rol": rol})
 
 
+RECURSO_POR_ROL = {"repartidor": "repartidores", "cliente": "clientes"}
+
+
 def dar_acceso(rol: str, id_persona: int, email: str, password: str) -> dict:
-    """Crea o actualiza las credenciales de un repartidor o un cliente."""
-    recurso = {"repartidor": "repartidores", "cliente": "clientes"}[rol]
-    return _pedir("PUT", f"usuarios/{recurso}/{id_persona}/acceso", json={"email": email, "password": password})
+    """Crea o actualiza las credenciales de un repartidor o un cliente. Si estaba desactivado, lo reactiva."""
+    return _pedir("PUT", f"usuarios/{RECURSO_POR_ROL[rol]}/{id_persona}/acceso", json={"email": email, "password": password})
+
+
+def quitar_acceso(rol: str, id_persona: int) -> None:
+    """Desactiva la cuenta: la persona no puede iniciar sesión hasta que se le den credenciales de nuevo."""
+    _pedir("DELETE", f"usuarios/{RECURSO_POR_ROL[rol]}/{id_persona}/acceso")
 
 
 # --- Comercio -----------------------------------------------------------------

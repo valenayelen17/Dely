@@ -30,7 +30,7 @@ ENTREGAS_ACTIVAS = frozenset({EstadoEntrega.ASIGNADA, EstadoEntrega.EN_CAMINO, E
 
 TRANSICIONES_ENTREGA: dict[EstadoEntrega, frozenset[EstadoEntrega]] = {
     EstadoEntrega.ASIGNADA: frozenset({EstadoEntrega.EN_CAMINO}),
-    EstadoEntrega.EN_CAMINO: frozenset({EstadoEntrega.LLEGANDO, EstadoEntrega.ENTREGADA}),
+    EstadoEntrega.EN_CAMINO: frozenset({EstadoEntrega.LLEGANDO}),
     EstadoEntrega.LLEGANDO: frozenset({EstadoEntrega.ENTREGADA}),
     EstadoEntrega.ENTREGADA: frozenset(),
     EstadoEntrega.CANCELADA: frozenset(),

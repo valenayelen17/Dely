@@ -12,7 +12,7 @@ import models  # noqa: E402, F401
 from api import app  # noqa: E402
 from database import Base, crear_engine, get_db  # noqa: E402
 from estados import Rol  # noqa: E402
-from seguridad import hashear  # noqa: E402
+from seguridad import hashear, limpiar_fallos  # noqa: E402
 
 PASSWORD = "clave123"
 
@@ -31,6 +31,7 @@ def client():
             db.close()
 
     app.dependency_overrides[get_db] = get_db_de_prueba
+    limpiar_fallos()
 
     with Sesion() as db:
         db.add(models.Usuario(email="encargado@dely.com", password_hash=hashear(PASSWORD), rol=Rol.ENCARGADO))

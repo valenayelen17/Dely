@@ -4,6 +4,24 @@ from datetime import time
 from decimal import Decimal
 
 from django import forms
+from django.core.exceptions import ValidationError
+
+
+# Mismas reglas que backend/schemas.py: así el encargado ve el error antes de enviar nada a la API.
+
+def validar_nombre(valor: str) -> None:
+    if not all(c.isalpha() or c in " '.-" for c in valor) or not any(c.isalpha() for c in valor):
+        raise ValidationError("Sólo puede tener letras, espacios, apóstrofos y guiones.")
+
+
+def validar_telefono(valor: str) -> None:
+    if not all(c.isdigit() or c in " +()-" for c in valor) or sum(c.isdigit() for c in valor) < 6:
+        raise ValidationError("Tiene que tener al menos 6 dígitos y sólo puede incluir espacios, +, guiones y paréntesis.")
+
+
+def validar_password(valor: str) -> None:
+    if len(valor) < 8 or not any(c.isalpha() for c in valor) or not any(c.isdigit() for c in valor):
+        raise ValidationError("Tiene que tener al menos 8 caracteres, con una letra y un número.")
 
 
 class FormularioDely(forms.Form):
@@ -43,10 +61,10 @@ class AccesoForm(FormularioDely):
     email = forms.EmailField(label="Email de acceso")
     password = forms.CharField(
         label="Contraseña",
-        min_length=6,
         max_length=72,
+        validators=[validar_password],
         widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
-        help_text="Mínimo 6 caracteres. Pasásela a la persona por un medio seguro.",
+        help_text="Mínimo 8 caracteres, con una letra y un número. Pasásela a la persona por un medio seguro.",
     )
     confirmar = forms.CharField(
         label="Repetí la contraseña", max_length=72, widget=forms.PasswordInput(attrs={"autocomplete": "new-password"})
@@ -59,10 +77,13 @@ class AccesoForm(FormularioDely):
         return datos
 
 
-class ClienteForm(FormularioDely):
-    nombre = forms.CharField(min_length=2, max_length=100)
-    apellido = forms.CharField(min_length=2, max_length=100)
-    telefono = forms.CharField(label="Teléfono", min_length=6, max_length=30)
+class PersonaForm(FormularioDely):
+    nombre = forms.CharField(min_length=2, max_length=100, validators=[validar_nombre])
+    apellido = forms.CharField(min_length=2, max_length=100, validators=[validar_nombre])
+    telefono = forms.CharField(label="Teléfono", min_length=6, max_length=30, validators=[validar_telefono])
+
+
+class ClienteForm(PersonaForm):
     email = forms.EmailField()
     direccion = forms.CharField(label="Dirección", min_length=3, max_length=255)
 
@@ -77,10 +98,7 @@ class ProductoForm(FormularioDely):
     descripcion = forms.CharField(label="Descripción", max_length=500, required=False)
 
 
-class RepartidorForm(FormularioDely):
-    nombre = forms.CharField(min_length=2, max_length=100)
-    apellido = forms.CharField(min_length=2, max_length=100)
-    telefono = forms.CharField(label="Teléfono", min_length=6, max_length=30)
+class RepartidorForm(PersonaForm):
     zona = forms.CharField(
         min_length=2,
         max_length=100,

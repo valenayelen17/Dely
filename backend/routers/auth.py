@@ -5,17 +5,26 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import Usuario
 from schemas import LoginIn, TokenOut, UsuarioOut
-from seguridad import crear_token, usuario_actual, verificar
+from seguridad import crear_token, limpiar_fallos, minutos_de_bloqueo, registrar_fallo, usuario_actual, verificar
 
 router = APIRouter(prefix="/api/auth", tags=["Autenticación"])
 
 
 @router.post("/login", response_model=TokenOut)
 def login(datos: LoginIn, db: Session = Depends(get_db)):
-    usuario = db.scalars(select(Usuario).where(func.lower(Usuario.email) == datos.email.lower())).first()
+    minutos = minutos_de_bloqueo(datos.email)
+    if minutos:
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            f"Demasiados intentos fallidos. Esperá {minutos} minuto{'s' if minutos > 1 else ''} y volvé a probar.",
+            headers={"Retry-After": str(minutos * 60)},
+        )
+    usuario = db.scalars(select(Usuario).where(func.lower(Usuario.email) == datos.email)).first()
     # Mismo mensaje si no existe el email o si la contraseña está mal, para no revelar qué cuentas hay.
     if usuario is None or not usuario.activo or not verificar(datos.password, usuario.password_hash):
+        registrar_fallo(datos.email)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Email o contraseña incorrectos.")
+    limpiar_fallos(datos.email)
     token, vence = crear_token(usuario)
     return TokenOut(access_token=token, expira=vence, usuario=UsuarioOut.model_validate(usuario))
 

@@ -3,6 +3,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from database import get_db
+from estados import ENTREGAS_ACTIVAS
 from models import Repartidor, Usuario
 from routers.comercios import buscar_comercio
 from schemas import EntregaDetalle, RepartidorCreate, RepartidorDisponibilidad, RepartidorOut, RepartidorUpdate
@@ -17,6 +18,24 @@ def buscar_repartidor(db: Session, repartidor_id: int) -> Repartidor:
     if repartidor is None:
         raise HTTPException(404, "Repartidor no encontrado.")
     return repartidor
+
+
+def entregas_activas(repartidor: Repartidor) -> int:
+    return sum(1 for e in repartidor.entregas if e.estado in ENTREGAS_ACTIVAS)
+
+
+def exigir_sin_entregas_activas(repartidor: Repartidor, accion: str) -> None:
+    activas = entregas_activas(repartidor)
+    if activas:
+        plural = "s" if activas > 1 else ""
+        raise HTTPException(409, f"No se puede {accion}: tiene {activas} entrega{plural} activa{plural}. Reasignala{plural} o terminala{plural} antes.")
+
+
+def exigir_telefono_libre(db: Session, telefono: str, excepto_id: int | None = None) -> None:
+    digitos = "".join(c for c in telefono if c.isdigit())
+    for otro in db.scalars(select(Repartidor)).all():
+        if otro.id_repartidor != excepto_id and "".join(c for c in otro.telefono if c.isdigit()) == digitos:
+            raise HTTPException(409, f"Ya existe un repartidor con ese teléfono ({otro.nombre} {otro.apellido}).")
 
 
 @router.get("/", response_model=list[RepartidorOut], dependencies=[Depends(solo_encargado)])
@@ -59,6 +78,7 @@ def entregas_del_repartidor(
 @router.post("/", response_model=RepartidorOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(solo_encargado)])
 def crear_repartidor(datos: RepartidorCreate, db: Session = Depends(get_db)):
     buscar_comercio(db, datos.comercio_id)
+    exigir_telefono_libre(db, datos.telefono)
     repartidor = Repartidor(**datos.model_dump())
     db.add(repartidor)
     db.commit()
@@ -70,6 +90,13 @@ def crear_repartidor(datos: RepartidorCreate, db: Session = Depends(get_db)):
 def actualizar_repartidor(repartidor_id: int, datos: RepartidorUpdate, db: Session = Depends(get_db)):
     repartidor = buscar_repartidor(db, repartidor_id)
     buscar_comercio(db, datos.comercio_id)
+    exigir_telefono_libre(db, datos.telefono, excepto_id=repartidor_id)
+    if datos.comercio_id != repartidor.comercio_id and repartidor.entregas:
+        raise HTTPException(409, "No se puede cambiar de comercio a un repartidor con entregas registradas.")
+    if not datos.disponible:
+        exigir_sin_entregas_activas(repartidor, "sacar de turno al repartidor")
+    if datos.zona.strip().casefold() != repartidor.zona.strip().casefold():
+        exigir_sin_entregas_activas(repartidor, "cambiar la zona del repartidor")
     for campo, valor in datos.model_dump().items():
         setattr(repartidor, campo, valor)
     db.commit()
@@ -82,6 +109,8 @@ def cambiar_disponibilidad(
     repartidor_id: int, datos: RepartidorDisponibilidad, db: Session = Depends(get_db)
 ):
     repartidor = buscar_repartidor(db, repartidor_id)
+    if not datos.disponible:
+        exigir_sin_entregas_activas(repartidor, "sacar de turno al repartidor")
     repartidor.disponible = datos.disponible
     db.commit()
     db.refresh(repartidor)

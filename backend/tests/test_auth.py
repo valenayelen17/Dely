@@ -110,11 +110,11 @@ def test_cliente_ve_solo_sus_pedidos(client, base, cuentas, crear_pedido, como):
 def test_el_encargado_cambia_la_contrasena_de_un_acceso(client, base, cuentas, como):
     id_juan = base["repartidor_centro"]["id_repartidor"]
 
-    r = client.put(f"/api/usuarios/repartidores/{id_juan}/acceso", json={"email": "juan@dely.com", "password": "nueva-clave"})
+    r = client.put(f"/api/usuarios/repartidores/{id_juan}/acceso", json={"email": "juan@dely.com", "password": "nueva-clave1"})
 
     assert r.status_code == 200
     assert como(None).post("/api/auth/login", json={"email": "juan@dely.com", "password": PASSWORD}).status_code == 401
-    assert como(None).post("/api/auth/login", json={"email": "juan@dely.com", "password": "nueva-clave"}).status_code == 200
+    assert como(None).post("/api/auth/login", json={"email": "juan@dely.com", "password": "nueva-clave1"}).status_code == 200
     assert len(client.get("/api/usuarios/?rol=repartidor").json()) == 2
 
 

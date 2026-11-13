@@ -1,6 +1,6 @@
 """Accesos de repartidores y clientes. Sólo el encargado los administra."""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -22,13 +22,13 @@ def listar_usuarios(rol: Rol | None = None, db: Session = Depends(get_db)):
 
 
 def _guardar_acceso(db: Session, usuario: Usuario | None, datos: AccesoIn, **vinculo) -> Usuario:
-    otro = db.scalars(select(Usuario).where(func.lower(Usuario.email) == datos.email.lower())).first()
+    otro = db.scalars(select(Usuario).where(func.lower(Usuario.email) == datos.email)).first()
     if otro is not None and otro is not usuario:
         raise HTTPException(409, "Ese email ya lo usa otra cuenta.")
     if usuario is None:
         usuario = Usuario(**vinculo)
         db.add(usuario)
-    usuario.email = datos.email.lower()
+    usuario.email = datos.email
     usuario.password_hash = hashear(datos.password)
     usuario.activo = True
     db.commit()
@@ -50,3 +50,21 @@ def acceso_de_cliente(cliente_id: int, datos: AccesoIn, db: Session = Depends(ge
         raise HTTPException(404, "Cliente no encontrado.")
     usuario = db.scalars(select(Usuario).where(Usuario.cliente_id == cliente_id)).first()
     return _guardar_acceso(db, usuario, datos, rol=Rol.CLIENTE, cliente_id=cliente_id)
+
+
+def _desactivar(db: Session, usuario: Usuario | None) -> None:
+    """Deja la cuenta sin acceso. Volver a asignarle credenciales (PUT) la reactiva."""
+    if usuario is None:
+        raise HTTPException(404, "Esa persona no tiene una cuenta de acceso.")
+    usuario.activo = False
+    db.commit()
+
+
+@router.delete("/repartidores/{repartidor_id}/acceso", status_code=status.HTTP_204_NO_CONTENT)
+def quitar_acceso_de_repartidor(repartidor_id: int, db: Session = Depends(get_db)):
+    _desactivar(db, db.scalars(select(Usuario).where(Usuario.repartidor_id == repartidor_id)).first())
+
+
+@router.delete("/clientes/{cliente_id}/acceso", status_code=status.HTTP_204_NO_CONTENT)
+def quitar_acceso_de_cliente(cliente_id: int, db: Session = Depends(get_db)):
+    _desactivar(db, db.scalars(select(Usuario).where(Usuario.cliente_id == cliente_id)).first())

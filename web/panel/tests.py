@@ -304,3 +304,50 @@ class ServiciosTest(SimpleTestCase):
             services.obtener_comercio()
 
         self.assertEqual(request.call_args.kwargs["headers"]["Authorization"], "Bearer abc123")
+
+
+@patch(f"{SERVICIOS}.obtener_comercio", return_value=COMERCIO)
+class ValidacionesTest(ConSesion):
+    @patch(f"{SERVICIOS}.listar_usuarios", return_value=[])
+    @patch(f"{SERVICIOS}.obtener_repartidor", return_value={**REPARTIDOR, "disponible": True, "comercio_id": 1})
+    @patch(f"{SERVICIOS}.dar_acceso")
+    def test_rechaza_contrasenas_debiles_antes_de_llamar_a_la_api(self, dar_acceso, _rep, _usuarios, _comercio):
+        for debil in ("123456", "soloLetras", "corta1"):
+            respuesta = self.client.post(reverse("repartidor_acceso", args=[1]), {"email": "juan@dely.com", "password": debil, "confirmar": debil})
+            self.assertContains(respuesta, "al menos 8 caracteres", status_code=400)
+        dar_acceso.assert_not_called()
+
+    @patch(f"{SERVICIOS}.crear_cliente")
+    def test_rechaza_telefonos_y_nombres_invalidos(self, crear, _comercio):
+        datos = {"nombre": "R2D2", "apellido": "Ruiz", "telefono": "abcdefg", "email": "b@mail.com", "direccion": "Calle 3"}
+
+        respuesta = self.client.post(reverse("cliente_nuevo"), datos)
+
+        self.assertContains(respuesta, "letras, espacios", status_code=400)
+        self.assertContains(respuesta, "al menos 6 dígitos", status_code=400)
+        crear.assert_not_called()
+
+    @patch(f"{SERVICIOS}.quitar_acceso")
+    def test_quita_el_acceso_de_un_repartidor(self, quitar, _comercio):
+        respuesta = self.client.post(reverse("repartidor_quitar_acceso", args=[1]))
+
+        quitar.assert_called_once_with("repartidor", 1)
+        self.assertRedirects(respuesta, reverse("repartidores"), fetch_redirect_response=False)
+
+    @patch(f"{SERVICIOS}.cambiar_disponibilidad", side_effect=ErrorApi("No se puede sacar de turno al repartidor: tiene 1 entrega activa.", 409))
+    def test_muestra_el_rechazo_de_la_api_al_sacar_de_turno(self, _cambiar, _comercio):
+        respuesta = self.client.post(reverse("disponibilidad", args=[1]), {"disponible": "false"}, follow=False)
+
+        self.assertRedirects(respuesta, reverse("repartidores"), fetch_redirect_response=False)
+        mensajes = [str(m) for m in list(respuesta.wsgi_request._messages)]
+        self.assertIn("tiene 1 entrega activa", mensajes[0])
+
+    @patch(f"{SERVICIOS}.notificaciones_del_pedido", return_value=[])
+    @patch(f"{SERVICIOS}.listar_repartidores", return_value=[{**REPARTIDOR, "disponible": True}, {**REPARTIDOR, "id_repartidor": 2, "nombre": "Luz", "disponible": True}])
+    @patch(f"{SERVICIOS}.obtener_pedido")
+    def test_al_reasignar_no_ofrece_al_repartidor_actual(self, obtener, _rep, _notif, _comercio):
+        obtener.return_value = pedido(estado="Asignado", entrega={"repartidor": REPARTIDOR, "repartidor_id": 1, "estado": "Asignada"})
+
+        respuesta = self.client.get(reverse("pedido_detalle", args=[1]))
+
+        self.assertEqual([r["id_repartidor"] for r in respuesta.context["repartidores"]], [2])
