@@ -6,7 +6,7 @@ from django.test import SimpleTestCase
 from django.urls import reverse
 
 from panel.src.services import ErrorApi
-from panel.templatetags.dely import hora, pesos
+from panel.templatetags.dely import hora, obtener, pesos
 
 COMERCIO = {"id_comercio": 1, "nombre": "La Esquina Pizzería"}
 CLIENTE = {"id_cliente": 1, "nombre": "Ana", "apellido": "Pérez", "telefono": "1160001111"}
@@ -34,6 +34,21 @@ def pedido(id_pedido=1, estado="Pendiente", entrega=None):
 
 SERVICIOS = "panel.src.services"
 
+SESION_ENCARGADO = {
+    "access_token": "token-de-prueba",
+    "expira": "2030-01-01T00:00:00Z",
+    "usuario": {"id_usuario": 1, "email": "encargado@dely.com", "rol": "encargado", "nombre": "Encargado",
+                "repartidor_id": None, "cliente_id": None},
+}
+
+
+class ConSesion(SimpleTestCase):
+    """Inicia sesión como encargado antes de cada test (la API de login está simulada)."""
+
+    def setUp(self):
+        with patch(f"{SERVICIOS}.login", return_value=SESION_ENCARGADO):
+            self.client.post(reverse("login"), {"email": "encargado@dely.com", "password": "x"})
+
 
 class FiltrosTest(SimpleTestCase):
     def test_pesos_con_separador_de_miles(self):
@@ -42,9 +57,14 @@ class FiltrosTest(SimpleTestCase):
     def test_hora_sin_segundos(self):
         self.assertEqual(hora("20:30:00"), "20:30")
 
+    def test_obtener_acepta_claves_numericas_y_de_texto(self):
+        self.assertEqual(obtener({1: "a"}, 1), "a")
+        self.assertEqual(obtener({"2": "b"}, 2), "b")
+        self.assertEqual(obtener({}, 3), "")
+
 
 @patch(f"{SERVICIOS}.obtener_comercio", return_value=COMERCIO)
-class PendientesTest(SimpleTestCase):
+class PendientesTest(ConSesion):
     @patch(f"{SERVICIOS}.listar_repartidores", return_value=[{**REPARTIDOR, "disponible": True}])
     @patch(f"{SERVICIOS}.listar_pendientes")
     def test_agrupa_los_pedidos_por_estado(self, pendientes, _repartidores, _comercio):
@@ -74,7 +94,7 @@ class PendientesTest(SimpleTestCase):
 
 
 @patch(f"{SERVICIOS}.obtener_comercio", return_value=COMERCIO)
-class AsignacionTest(SimpleTestCase):
+class AsignacionTest(ConSesion):
     @patch(f"{SERVICIOS}.notificaciones_del_pedido", return_value=[])
     @patch(f"{SERVICIOS}.listar_repartidores", return_value=[{**REPARTIDOR, "disponible": True}])
     @patch(f"{SERVICIOS}.obtener_pedido", return_value=pedido())
@@ -112,7 +132,7 @@ class AsignacionTest(SimpleTestCase):
 @patch(f"{SERVICIOS}.listar_productos", return_value=[
     {"id_producto": 1, "nombre": "Pizza", "descripcion": None, "precio": "12000.00", "categoria": "Pizzas", "stock": 5}
 ])
-class NuevoPedidoTest(SimpleTestCase):
+class NuevoPedidoTest(ConSesion):
     @patch(f"{SERVICIOS}.crear_pedido", return_value=pedido(7))
     def test_crea_el_pedido_con_los_productos_elegidos(self, crear, *_):
         datos = {"cliente_id": "1", "zona": "Centro", "horario_estimado": "21:00", "cantidad_1": "2"}
@@ -145,7 +165,7 @@ class NuevoPedidoTest(SimpleTestCase):
 
 
 @patch(f"{SERVICIOS}.obtener_comercio", return_value=COMERCIO)
-class AbmTest(SimpleTestCase):
+class AbmTest(ConSesion):
     CLIENTE_VALIDO = {
         "nombre": "Ana", "apellido": "Pérez", "telefono": "1160001111",
         "email": "ana@ejemplo.com", "direccion": "Av. Callao 456",
@@ -195,3 +215,92 @@ class AbmTest(SimpleTestCase):
 
         editar.assert_called_once_with(5, datos)
         self.assertRedirects(respuesta, reverse("pedido_detalle", args=[5]), fetch_redirect_response=False)
+
+
+class SesionTest(SimpleTestCase):
+    def test_sin_sesion_redirige_al_login(self):
+        respuesta = self.client.get(reverse("pendientes"))
+
+        self.assertRedirects(respuesta, reverse("login") + "?next=/pedidos/", fetch_redirect_response=False)
+
+    @patch(f"{SERVICIOS}.login", return_value=SESION_ENCARGADO)
+    def test_login_guarda_el_token_y_vuelve_a_la_pagina_pedida(self, login):
+        respuesta = self.client.post(reverse("login"), {"email": "encargado@dely.com", "password": "dely1234", "next": "/historial/"})
+
+        login.assert_called_once_with("encargado@dely.com", "dely1234")
+        self.assertRedirects(respuesta, "/historial/", fetch_redirect_response=False)
+        self.assertEqual(self.client.session["token"], "token-de-prueba")
+
+    @patch(f"{SERVICIOS}.login", return_value=SESION_ENCARGADO)
+    def test_no_redirige_a_otro_sitio(self, _login):
+        respuesta = self.client.post(reverse("login"), {"email": "encargado@dely.com", "password": "x", "next": "https://malicioso.com/"})
+
+        self.assertRedirects(respuesta, reverse("pendientes"), fetch_redirect_response=False)
+
+    @patch(f"{SERVICIOS}.login", side_effect=ErrorApi("Email o contraseña incorrectos.", 401))
+    def test_credenciales_invalidas(self, _login):
+        respuesta = self.client.post(reverse("login"), {"email": "encargado@dely.com", "password": "mala"})
+
+        self.assertContains(respuesta, "Email o contraseña incorrectos.", status_code=400)
+        self.assertNotIn("token", self.client.session)
+
+    @patch(f"{SERVICIOS}.login")
+    def test_solo_entra_el_encargado(self, login):
+        login.return_value = {**SESION_ENCARGADO, "usuario": {**SESION_ENCARGADO["usuario"], "rol": "repartidor"}}
+
+        respuesta = self.client.post(reverse("login"), {"email": "juan@dely.com", "password": "x"})
+
+        self.assertContains(respuesta, "no es de encargado", status_code=400)
+        self.assertNotIn("token", self.client.session)
+
+
+class SesionIniciadaTest(ConSesion):
+    @patch(f"{SERVICIOS}.obtener_comercio", side_effect=ErrorApi("La sesión venció.", 401))
+    def test_token_vencido_cierra_la_sesion(self, _comercio):
+        respuesta = self.client.get(reverse("pendientes"))
+
+        self.assertRedirects(respuesta, reverse("login") + "?next=/pedidos/", fetch_redirect_response=False)
+        self.assertNotIn("token", self.client.session)
+
+    def test_logout(self):
+        respuesta = self.client.post(reverse("logout"))
+
+        self.assertRedirects(respuesta, reverse("login"), fetch_redirect_response=False)
+        self.assertNotIn("token", self.client.session)
+
+    @patch(f"{SERVICIOS}.listar_usuarios", return_value=[])
+    @patch(f"{SERVICIOS}.obtener_repartidor", return_value={**REPARTIDOR, "disponible": True, "comercio_id": 1})
+    @patch(f"{SERVICIOS}.dar_acceso", return_value={"email": "juan@dely.com"})
+    def test_da_acceso_a_un_repartidor(self, dar_acceso, _rep, _usuarios):
+        datos = {"email": "juan@dely.com", "password": "secreta1", "confirmar": "secreta1"}
+
+        respuesta = self.client.post(reverse("repartidor_acceso", args=[1]), datos)
+
+        dar_acceso.assert_called_once_with("repartidor", 1, "juan@dely.com", "secreta1")
+        self.assertRedirects(respuesta, reverse("repartidores"), fetch_redirect_response=False)
+
+    @patch(f"{SERVICIOS}.listar_usuarios", return_value=[])
+    @patch(f"{SERVICIOS}.obtener_cliente", return_value={**CLIENTE, "email": "ana@mail.com", "direccion": "x"})
+    @patch(f"{SERVICIOS}.dar_acceso")
+    def test_las_contrasenas_tienen_que_coincidir(self, dar_acceso, _cliente, _usuarios):
+        datos = {"email": "ana@mail.com", "password": "secreta1", "confirmar": "otra-cosa"}
+
+        respuesta = self.client.post(reverse("cliente_acceso", args=[1]), datos)
+
+        self.assertContains(respuesta, "no coinciden", status_code=400)
+        dar_acceso.assert_not_called()
+
+
+class ServiciosTest(SimpleTestCase):
+    @patch("panel.src.services.requests.request")
+    def test_envia_el_token_de_la_sesion_a_la_api(self, request):
+        from panel.src import services
+
+        request.return_value.status_code = 200
+        request.return_value.content = b"[]"
+        request.return_value.json.return_value = [{"id_comercio": 1}]
+
+        with services.usando_token("abc123"):
+            services.obtener_comercio()
+
+        self.assertEqual(request.call_args.kwargs["headers"]["Authorization"], "Bearer abc123")

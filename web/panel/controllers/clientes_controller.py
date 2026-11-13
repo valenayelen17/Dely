@@ -2,6 +2,7 @@ from django.shortcuts import render
 
 from ..forms import ClienteForm
 from ..src import services
+from .accesos_controller import accesos_por_persona
 from .base import ControladorDely
 from .formulario_controller import FormularioController
 
@@ -17,7 +18,12 @@ class ClientesController(ControladorDely):
                 c for c in clientes
                 if texto in f"{c['nombre']} {c['apellido']} {c['telefono']} {c['email']}".lower()
             ]
-        contexto = {"comercio": comercio, "clientes": clientes, "busqueda": busqueda}
+        contexto = {
+            "comercio": comercio,
+            "clientes": clientes,
+            "busqueda": busqueda,
+            "accesos": accesos_por_persona("cliente"),
+        }
         return render(request, "clientes.html", contexto)
 
 

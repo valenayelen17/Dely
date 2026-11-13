@@ -21,16 +21,25 @@ API_URL = os.getenv("API_URL", "http://127.0.0.1:8000/api/")
 
 INSTALLED_APPS = [
     "panel",
+    "django.contrib.sessions",
     "django.contrib.messages",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "panel.middleware.TokenApiMiddleware",
 ]
+
+# Sesión firmada en una cookie (no hace falta base de datos). Guarda el JWT que devuelve la API.
+SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_AGE = 8 * 60 * 60  # igual que la validez del token de la API
+LOGIN_URL = "login"
 
 ROOT_URLCONF = "panel.urls"
 

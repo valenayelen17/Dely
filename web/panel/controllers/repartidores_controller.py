@@ -4,6 +4,7 @@ from django.shortcuts import redirect, render
 from ..forms import RepartidorForm
 from ..src import services
 from ..src.services import ErrorApi
+from .accesos_controller import accesos_por_persona
 from .base import ControladorDely
 from .formulario_controller import FormularioController
 from .pedidos_controller import zonas_del_comercio
@@ -17,6 +18,7 @@ class RepartidoresController(ControladorDely):
             "comercio": comercio,
             "repartidores": sorted(repartidores, key=lambda r: (r["zona"], r["nombre"])),
             "en_turno": sum(1 for r in repartidores if r["disponible"]),
+            "accesos": accesos_por_persona("repartidor"),
         }
         return render(request, "repartidores.html", contexto)
 
