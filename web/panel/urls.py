@@ -3,7 +3,12 @@
 from django.urls import path
 from django.views.generic import RedirectView
 
-from panel.controllers.accesos_controller import AccesoClienteController, AccesoRepartidorController
+from panel.controllers.accesos_controller import (
+    AccesoClienteController,
+    AccesoRepartidorController,
+    QuitarAccesoClienteController,
+    QuitarAccesoRepartidorController,
+)
 from panel.controllers.clientes_controller import ClienteFormularioController, ClientesController
 from panel.controllers.historial_controller import HistorialController
 from panel.controllers.pedidos_controller import (
@@ -40,6 +45,7 @@ urlpatterns = [
     path("repartidores/nuevo/", RepartidorFormularioController.as_view(), name="repartidor_nuevo"),
     path("repartidores/<int:pk>/editar/", RepartidorFormularioController.as_view(), name="repartidor_editar"),
     path("repartidores/<int:pk>/acceso/", AccesoRepartidorController.as_view(), name="repartidor_acceso"),
+    path("repartidores/<int:pk>/acceso/quitar/", QuitarAccesoRepartidorController.as_view(), name="repartidor_quitar_acceso"),
     path(
         "repartidores/<int:repartidor_id>/disponibilidad/",
         DisponibilidadController.as_view(),
@@ -54,4 +60,5 @@ urlpatterns = [
     path("clientes/nuevo/", ClienteFormularioController.as_view(), name="cliente_nuevo"),
     path("clientes/<int:pk>/editar/", ClienteFormularioController.as_view(), name="cliente_editar"),
     path("clientes/<int:pk>/acceso/", AccesoClienteController.as_view(), name="cliente_acceso"),
+    path("clientes/<int:pk>/acceso/quitar/", QuitarAccesoClienteController.as_view(), name="cliente_quitar_acceso"),
 ]

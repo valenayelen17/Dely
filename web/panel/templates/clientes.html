@@ -26,7 +26,7 @@
                     <td>{{ c.telefono }}</td>
                     <td>{{ c.email }}</td>
                     <td>{{ c.direccion }}</td>
-                    <td>{% with cuenta=accesos|obtener:c.id_cliente %}{% if cuenta %}<span class="small"><i class="bi bi-person-check text-success"></i> {{ cuenta.email }}</span>{% else %}<span class="small text-body-secondary">Sin acceso</span>{% endif %}{% endwith %}</td>
+                    <td>{% with cuenta=accesos|obtener:c.id_cliente %}{% if cuenta and cuenta.activo %}<span class="small"><i class="bi bi-person-check text-success"></i> {{ cuenta.email }}</span>{% elif cuenta %}<span class="small text-body-secondary"><i class="bi bi-person-x text-danger"></i> {{ cuenta.email }} <span class="badge text-bg-secondary">desactivado</span></span>{% else %}<span class="small text-body-secondary">Sin acceso</span>{% endif %}{% endwith %}</td>
                     <td class="text-end text-nowrap">
                         <a href="{% url 'cliente_acceso' c.id_cliente %}" class="btn btn-sm btn-outline-secondary" title="Acceso"><i class="bi bi-key"></i></a>
                         <a href="{% url 'cliente_editar' c.id_cliente %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i> Editar</a>

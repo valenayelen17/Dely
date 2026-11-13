@@ -49,6 +49,8 @@ class PedidoDetalleController(ControladorDely):
         repartidores = []
         if puede_asignar:
             repartidores = services.listar_repartidores(comercio["id_comercio"], zona=pedido["zona"], disponible=True)
+            if entrega is not None:  # reasignar al mismo repartidor no tiene sentido (la API lo rechaza)
+                repartidores = [r for r in repartidores if r["id_repartidor"] != entrega["repartidor_id"]]
 
         contexto = {
             "comercio": comercio,
