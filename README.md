@@ -14,6 +14,7 @@ Trabajo práctico de Análisis y Metodologías de Sistemas. Integrantes: Marco P
 - [Tecnologías](#tecnologías)
 - [Cómo ejecutarlo](#cómo-ejecutarlo)
 - [Arquitectura MVC](#arquitectura-mvc)
+- [Autenticación (JWT)](#autenticación-jwt)
 - [Historias de usuario](#historias-de-usuario)
 - [Flujos del sistema](#flujos-del-sistema)
 - [Estados del pedido y de la entrega](#estados-del-pedido-y-de-la-entrega)
@@ -26,7 +27,7 @@ Trabajo práctico de Análisis y Metodologías de Sistemas. Integrantes: Marco P
 Dely/
 ├── backend/        API REST (FastAPI + SQLAlchemy + MySQL): datos y reglas de negocio
 ├── web/            Panel del encargado (Django + AdminLTE), consume la API con requests
-├── frontend/       Vistas mobile del repartidor y del cliente (React + TypeScript + Vite)
+├── frontend/       App del repartidor y del cliente (React + TypeScript + Vite)
 ├── docs/capturas/  Capturas de pantalla usadas en este README
 └── .github/        CI: tests del backend y del panel, lint y build del frontend
 ```
@@ -35,8 +36,8 @@ Dely/
 
 | Parte | Stack |
 |---|---|
-| API (`backend/`) | Python 3.11+, FastAPI, SQLAlchemy 2, MySQL (PyMySQL), Pydantic, pytest |
-| Panel del encargado (`web/`) | Django 6.1, templates con AdminLTE 4 + Bootstrap 5 + Bootstrap Icons, `requests`, `python-dotenv` |
+| API (`backend/`) | Python 3.11+, FastAPI, SQLAlchemy 2, MySQL (PyMySQL), Pydantic, JWT (PyJWT) y bcrypt, pytest |
+| Panel del encargado (`web/`) | Django 6.1, templates con AdminLTE 4 + Bootstrap 5 + Bootstrap Icons, sesión en cookie firmada, `requests`, `python-dotenv` |
 | Repartidor y cliente (`frontend/`) | React 19, TypeScript, Vite, React Router |
 | Calidad | GitHub Actions: `pytest` en la API, `manage.py test` en el panel, `oxlint` y build en el frontend |
 
@@ -51,8 +52,8 @@ El esquema sigue el que vimos en clase: **Django consume una API FastAPI** a par
 cd backend
 py -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-Copy-Item .env.example .env          # configurar DATABASE_URL con la cuenta de MySQL
-.\.venv\Scripts\python.exe seed.py   # opcional: carga datos de demo
+Copy-Item .env.example .env          # configurar DATABASE_URL y JWT_SECRET
+.\.venv\Scripts\python.exe seed.py   # datos de demo y cuentas de acceso
 
 # Panel Django
 cd ..\web
@@ -66,6 +67,10 @@ npm install
 ```
 
 La base y las tablas se crean solas al iniciar la API. Para probar sin MySQL se puede usar SQLite poniendo `DATABASE_URL=sqlite:///./dely.db` en el `.env`.
+
+`JWT_SECRET` es la clave con la que la API firma los tokens: tiene que ser larga y aleatoria, y no se sube al repositorio. Se genera con `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
+
+`seed.py` se puede correr también sobre una base que ya tiene datos: en ese caso sólo crea las cuentas de demo que falten.
 
 ### Día a día (tres terminales)
 
@@ -83,7 +88,7 @@ cd frontend
 npm run dev
 ```
 
-Para la demo conviene abrir tres ventanas: el panel en <http://127.0.0.1:8001>, el repartidor en <http://localhost:5173/repartidor> y el cliente en <http://localhost:5173/seguimiento>. Las vistas del repartidor y del cliente se refrescan cada 5 segundos, así que los cambios que hace el encargado se ven en vivo.
+Para la demo conviene abrir tres ventanas (o perfiles del navegador, para tener sesiones separadas): el panel en <http://127.0.0.1:8001> como encargado, y <http://localhost:5173> una vez como repartidor y otra como cliente. Las pantallas del repartidor y del cliente se refrescan cada 5 segundos, así que los cambios que hace el encargado se ven en vivo.
 
 Más detalle (endpoints, tests, estructura de cada parte) en [backend/README.md](backend/README.md), [web/README.md](web/README.md) y [frontend/README.md](frontend/README.md).
 
@@ -121,21 +126,62 @@ El MVC se aplica en las dos capas:
 
 En la API, `errores.py` traduce los errores de negocio a respuestas HTTP: 404 si no existe, 409 si hay un conflicto de estado y 422 si los datos no son válidos. El panel muestra esos mensajes tal cual al encargado.
 
+## Autenticación (JWT)
+
+Todo el sistema requiere iniciar sesión. La **API emite el token** y las dos aplicaciones lo usan:
+
+```mermaid
+sequenceDiagram
+    actor U as Usuario
+    participant App as Panel Django o app React
+    participant API as API DELY
+    U->>App: Email y contraseña
+    App->>API: POST /api/auth/login
+    API->>API: Verifica la contraseña (bcrypt)
+    API-->>App: JWT firmado (rol, id, vencimiento)
+    App->>API: Cada pedido con Authorization: Bearer JWT
+    API->>API: Valida firma, vencimiento y rol
+    API-->>App: Datos (sólo los que le corresponden)
+```
+
+| Rol | Dónde entra | Qué puede hacer |
+|---|---|---|
+| Encargado | Panel Django | Todo: pedidos, asignación, ABM, historial y dar acceso a repartidores y clientes |
+| Repartidor | App React | Ver y avanzar **sólo sus** entregas, informar su ubicación |
+| Cliente | App React | Ver **sólo sus** pedidos, su seguimiento y sus notificaciones |
+
+- Las contraseñas se guardan con **bcrypt**; nunca en texto plano.
+- El token dura 8 horas (`JWT_HORAS`). Cuando vence, las dos aplicaciones vuelven al login.
+- El **panel Django** guarda el token en su sesión (cookie firmada, `HttpOnly`) y lo agrega en cada llamada con `requests`. Sólo deja entrar a cuentas de encargado.
+- La **app React** guarda el token en `localStorage` y lo manda en cada `fetch`. Rechaza las cuentas de encargado.
+- El encargado crea o cambia las credenciales de cada repartidor y cliente desde el panel (botón de la llave en *Repartidores* y *Clientes*).
+- Si un repartidor pide entregas de otro, la API responde 403. Si un cliente pide el pedido de otro, responde 404 y así no revela que el código existe.
+
+**Cuentas de demo** (las crea `seed.py`, contraseña `dely1234`):
+
+| Rol | Email |
+|---|---|
+| Encargado | `encargado@dely.com` |
+| Repartidor | `juan.gomez@dely.com`, `lucia.fernandez@dely.com`, `martin.sosa@dely.com`, `sofia.rios@dely.com` |
+| Cliente | `ana.perez@ejemplo.com`, `bruno.lopez@ejemplo.com`, `carla.mendez@ejemplo.com` |
+
 ## Historias de usuario
 
 | HU | Historia | Cómo se resuelve |
 |---|---|---|
 | HU-01 | Como encargado quiero ver los pedidos no entregados | Tablero de pendientes. `GET /api/pedidos/pendientes`, con cliente, productos, total y repartidor |
 | HU-02 | Como encargado quiero asignar cada pedido a un repartidor disponible | Panel del pedido. `GET /api/repartidores/?zona=&disponible=true` y `PATCH /api/pedidos/{id}/asignar` |
-| HU-03 | Como cliente quiero saber en qué estado está mi pedido | Pantalla de seguimiento. `GET /api/seguimiento/{codigo}`, con estado y horario estimado |
+| HU-03 | Como cliente quiero saber en qué estado está mi pedido | *Mis pedidos* y su seguimiento. `GET /api/seguimiento/` y `GET /api/seguimiento/{codigo}`, con estado y horario estimado |
 | HU-04 | Como repartidor quiero actualizar el estado de mi entrega | Vista del repartidor. `GET /api/repartidores/{id}/entregas` y `PATCH /api/entregas/{id}/estado` |
 | HU-05 | Como cliente quiero un aviso cuando el repartidor esté llegando | Notificación automática cuando la entrega pasa a **Llegando** |
 
 ## Flujos del sistema
 
-No hay login. El encargado usa el panel Django (<http://127.0.0.1:8001>). El repartidor y el cliente usan el front React (<http://localhost:5173>), donde eligen su rol desde el inicio.
+Cada usuario inicia sesión en su aplicación: el encargado en el panel Django (<http://127.0.0.1:8001>) y el repartidor y el cliente en la app React (<http://localhost:5173>), que los lleva a su pantalla según el rol del token.
 
-![Inicio del front con los roles de repartidor y cliente](docs/capturas/01-inicio.png)
+| Login del panel (encargado) | Login de la app (repartidor y cliente) |
+|---|---|
+| ![Login del panel Django](docs/capturas/20-django-login.png) | ![Login de la app React](docs/capturas/07-login.png) |
 
 ### Flujo completo de un pedido
 
@@ -178,7 +224,7 @@ El encargado trabaja desde el **panel Django** (`web/`, <http://127.0.0.1:8001>)
 
 **Cancelar.** Un pedido no entregado se puede cancelar desde el detalle. La cancelación **devuelve el stock** y le avisa al cliente.
 
-**Administración e historial.** El menú lateral incluye el alta y la edición de repartidores (con su zona y el turno), de productos (agrupados por categoría, con aviso de stock bajo) y de clientes (con buscador). Los formularios validan los datos antes de enviarlos y muestran los errores de negocio que devuelve la API. *Historial* lista los pedidos entregados y cancelados, con la hora real de entrega y el total facturado.
+**Administración e historial.** El menú lateral incluye el alta y la edición de repartidores (con su zona y el turno), de productos (agrupados por categoría, con aviso de stock bajo) y de clientes (con buscador). En repartidores y clientes, la columna *Acceso* muestra quién puede iniciar sesión, y el botón de la llave crea la cuenta o cambia la contraseña. Los formularios validan los datos antes de enviarlos y muestran los errores de negocio que devuelve la API. *Historial* lista los pedidos entregados y cancelados, con la hora real de entrega y el total facturado.
 
 | Repartidores | Productos |
 |---|---|
@@ -188,22 +234,23 @@ El encargado trabaja desde el **panel Django** (`web/`, <http://127.0.0.1:8001>)
 
 ### 2. Repartidor (HU-04)
 
-Pensado para el celular. El repartidor elige quién es y ve sus entregas activas, con la dirección, el cliente, los productos y el monto a cobrar. Dentro de cada entrega avanza el recorrido **sin poder saltear estados**: *Asignada → En camino → Llegando → Entregada*. Además puede informar por dónde va, y ese texto le aparece al cliente en su seguimiento. Cada cambio actualiza solo el estado del pedido en el tablero del comercio. Antes de cerrar una entrega se pide confirmación.
+Después del login, el repartidor ve *Mis entregas*: indicadores del turno (activas, en recorrido, entregadas y monto a cobrar), las entregas activas en tarjetas con la próxima destacada, y una pestaña de historial. Sólo ve las entregas que tiene asignadas: la API lo controla con el token.
 
-<p>
-  <img src="docs/capturas/07-repartidor-quien-sos.png" alt="Selección de repartidor" width="250">
-  <img src="docs/capturas/08-repartidor-mis-entregas.png" alt="Entregas activas del repartidor" width="250">
-  <img src="docs/capturas/09-repartidor-detalle.png" alt="Detalle de la entrega con los pasos del recorrido" width="250">
-</p>
+![Mis entregas del repartidor](docs/capturas/08-repartidor-entregas.png)
+
+En el detalle avanza el recorrido **sin poder saltear estados**: *Asignada → En camino → Llegando → Entregada*. El panel de la derecha siempre muestra el próximo paso. Además puede informar por dónde va, y ese texto le aparece al cliente en su seguimiento. Cada cambio actualiza el estado del pedido en el panel del comercio. Antes de cerrar una entrega se pide confirmación.
+
+![Detalle de la entrega](docs/capturas/09-repartidor-detalle.png)
 
 ### 3. Cliente (HU-03 y HU-05)
 
-El cliente ingresa el código que le pasó el comercio. No necesita cuenta y no ve datos de otros pedidos. La pantalla muestra el estado, el horario estimado, los pasos del recorrido, quién lleva el pedido y el historial de notificaciones. Cuando el repartidor marca **Llegando**, aparece el aviso de llegada destacado arriba de todo (HU-05).
+Después del login, el cliente ve *Mis pedidos*: los que están en curso, con su etapa y la hora estimada, y una tabla con los anteriores. Sólo ve sus propios pedidos.
 
-<p>
-  <img src="docs/capturas/10-cliente-codigo.png" alt="Ingreso del código de seguimiento" width="250">
-  <img src="docs/capturas/11-cliente-seguimiento.png" alt="Seguimiento con aviso de llegada" width="250">
-</p>
+![Mis pedidos del cliente](docs/capturas/10-cliente-pedidos.png)
+
+El seguimiento muestra el estado, el horario estimado, los pasos del recorrido, quién lleva el pedido, los productos y, a la derecha, el historial de notificaciones. Cuando el repartidor marca **Llegando**, aparece el aviso de llegada destacado arriba de todo (HU-05).
+
+![Seguimiento con aviso de llegada](docs/capturas/11-cliente-seguimiento.png)
 
 ## Estados del pedido y de la entrega
 
@@ -248,6 +295,7 @@ Reglas principales:
 - **Notificación**: es una entidad nueva que persiste el flujo *Notificación al cliente* del proceso 4 del DFD.
 - **Código de seguimiento**: el cliente consulta su pedido con un código aleatorio, sin exponer ids ni datos de otros clientes.
 - **Aviso de llegada sin GPS**: la cercanía la informa el repartidor marcando la entrega como *Llegando*.
+- **Usuario**: es una entidad nueva para el inicio de sesión. Guarda el email, la contraseña (con bcrypt) y el rol, y se vincula con un repartidor o un cliente del DER. Así las personas del modelo original no cambian.
 
 ## Versionado
 

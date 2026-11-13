@@ -11,12 +11,19 @@ py -m venv .venv
 Copy-Item .env.example .env
 ```
 
-Configurá `DATABASE_URL` en `.env`. La cuenta de MySQL tiene que poder crear la base y las tablas, porque se crean solas en el primer inicio.
+Configurá en `.env`:
+
+| Variable | Para qué sirve |
+|---|---|
+| `DATABASE_URL` | Conexión a MySQL (o `sqlite:///./dely.db` para probar). La cuenta tiene que poder crear la base y las tablas, porque se crean solas en el primer inicio. |
+| `JWT_SECRET` | Clave con la que se firman los tokens. Obligatoria. Generala con `python -c "import secrets; print(secrets.token_urlsafe(48))"`. |
+| `JWT_HORAS` | Validez del token en horas (8 por defecto). |
+| `CORS_ORIGINS` | Orígenes del frontend habilitados. |
 
 > Si ya tenías una base creada con una versión anterior de la API, usá una base nueva (por ejemplo `dely_db_v2`): el arranque crea las tablas que faltan, pero no modifica las que ya existen.
 
 ```powershell
-.\.venv\Scripts\python.exe seed.py                    # opcional: datos de demo
+.\.venv\Scripts\python.exe seed.py                    # datos de demo y cuentas de acceso (contraseña dely1234)
 .\.venv\Scripts\python.exe -m uvicorn api:app --reload
 ```
 
@@ -28,16 +35,29 @@ La documentación interactiva queda en <http://127.0.0.1:8000/docs>.
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-Los tests usan una base SQLite en memoria y no tocan MySQL.
+Los tests usan una base SQLite en memoria y no tocan MySQL. Corren autenticados como encargado; `tests/test_auth.py` prueba el login, los tokens vencidos o adulterados y los permisos de cada rol.
+
+## Autenticación y permisos
+
+`POST /api/auth/login` recibe `{email, password}` y devuelve un JWT firmado con HS256 (`access_token`), su vencimiento y los datos del usuario. El resto de la API se usa con el header `Authorization: Bearer <token>`. En `/docs`, el botón *Authorize* permite pegarlo.
+
+| Rol | Puede usar |
+|---|---|
+| Encargado | Todos los endpoints |
+| Repartidor | `GET /api/repartidores/{su id}`, `GET /api/repartidores/{su id}/entregas`, y `GET` / `PATCH` de **sus** entregas |
+| Cliente | `GET /api/seguimiento/` (sus pedidos), `GET /api/seguimiento/{codigo}` y marcar leídas, sólo de **sus** pedidos |
+
+Sin token o con un token vencido o inválido la respuesta es 401, y con un rol sin permiso es 403. El código de seguimiento de otro cliente devuelve 404, así no se revela que existe. `seguridad.py` concentra el hash de contraseñas (bcrypt), la creación y validación de tokens y las dependencias de FastAPI que exigen un rol.
 
 ## Arquitectura (MVC)
 
 | Capa | Archivos | Rol |
 |---|---|---|
-| Modelo | `models.py`, `estados.py`, `database.py` | Entidades ORM, estados y conexión a MySQL |
+| Modelo | `models.py`, `estados.py`, `database.py` | Entidades ORM (incluido `Usuario`), estados, roles y conexión a MySQL |
 | Vista | `schemas.py` (y el frontend) | Qué datos entran y salen de la API |
 | Controlador | `routers/` | Endpoints HTTP: reciben el pedido y delegan |
 | Reglas de negocio | `services/` | Asignación, recorrido, stock, notificaciones, seguimiento |
+| Seguridad | `seguridad.py`, `routers/auth.py`, `routers/usuarios.py` | Contraseñas, JWT, control de roles y accesos |
 
 `errores.py` traduce los errores de negocio a respuestas HTTP: 404 si no existe, 409 si hay un conflicto de estado y 422 si los datos no son válidos.
 
@@ -45,6 +65,10 @@ Los tests usan una base SQLite en memoria y no tocan MySQL.
 
 | Recurso | Ruta | Operaciones |
 |---|---|---|
+| Login | `/api/auth/login` | POST (público) |
+| Usuario actual | `/api/auth/yo` | GET |
+| Accesos | `/api/usuarios/?rol=` | GET |
+| Dar acceso | `/api/usuarios/repartidores/{id}/acceso`, `/api/usuarios/clientes/{id}/acceso` | PUT (crea la cuenta o cambia la contraseña) |
 | Comercios | `/api/comercios/` | GET, POST, GET por id, PUT, DELETE |
 | Clientes | `/api/clientes/` | GET, POST, GET por id, PUT, DELETE |
 | Productos | `/api/productos/?comercio_id=&categoria=` | GET, POST, GET por id, PUT, DELETE |
@@ -59,6 +83,7 @@ Los tests usan una base SQLite en memoria y no tocan MySQL.
 | Entregas | `/api/entregas/?repartidor_id=&estado=` | GET, GET por id |
 | Estado de entrega | `/api/entregas/{id}/estado` | PATCH |
 | Ubicación | `/api/entregas/{id}/ubicacion` | PATCH |
+| Mis pedidos (cliente) | `/api/seguimiento/` | GET |
 | Seguimiento | `/api/seguimiento/{codigo}` | GET |
 | Marcar leídas | `/api/seguimiento/{codigo}/notificaciones/leidas` | PATCH |
 
