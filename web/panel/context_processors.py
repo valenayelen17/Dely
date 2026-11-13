@@ -13,6 +13,8 @@ MENU = {
     "clientes": "clientes",
     "cliente_nuevo": "clientes",
     "cliente_editar": "clientes",
+    "cliente_acceso": "clientes",
+    "repartidor_acceso": "repartidores",
     "historial": "historial",
 }
 
@@ -20,4 +22,7 @@ MENU = {
 def dely(request):
     """Datos comunes a todas las pantallas del panel."""
     match = getattr(request, "resolver_match", None)
-    return {"menu": MENU.get(match.url_name, "") if match else ""}
+    return {
+        "menu": MENU.get(match.url_name, "") if match else "",
+        "usuario": request.session.get("usuario") if hasattr(request, "session") else None,
+    }

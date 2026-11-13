@@ -3,6 +3,7 @@
 from django.urls import path
 from django.views.generic import RedirectView
 
+from panel.controllers.accesos_controller import AccesoClienteController, AccesoRepartidorController
 from panel.controllers.clientes_controller import ClienteFormularioController, ClientesController
 from panel.controllers.historial_controller import HistorialController
 from panel.controllers.pedidos_controller import (
@@ -14,6 +15,7 @@ from panel.controllers.pedidos_controller import (
     PendientesController,
 )
 from panel.controllers.productos_controller import ProductoFormularioController, ProductosController
+from panel.controllers.sesion_controller import LoginController, LogoutController
 from panel.controllers.repartidores_controller import (
     DisponibilidadController,
     RepartidoresController,
@@ -22,6 +24,9 @@ from panel.controllers.repartidores_controller import (
 
 urlpatterns = [
     path("", RedirectView.as_view(pattern_name="pendientes", permanent=False)),
+    # Sesión
+    path("login/", LoginController.as_view(), name="login"),
+    path("logout/", LogoutController.as_view(), name="logout"),
     # Pedidos
     path("pedidos/", PendientesController.as_view(), name="pendientes"),
     path("pedidos/nuevo/", NuevoPedidoController.as_view(), name="nuevo_pedido"),
@@ -34,6 +39,7 @@ urlpatterns = [
     path("repartidores/", RepartidoresController.as_view(), name="repartidores"),
     path("repartidores/nuevo/", RepartidorFormularioController.as_view(), name="repartidor_nuevo"),
     path("repartidores/<int:pk>/editar/", RepartidorFormularioController.as_view(), name="repartidor_editar"),
+    path("repartidores/<int:pk>/acceso/", AccesoRepartidorController.as_view(), name="repartidor_acceso"),
     path(
         "repartidores/<int:repartidor_id>/disponibilidad/",
         DisponibilidadController.as_view(),
@@ -47,4 +53,5 @@ urlpatterns = [
     path("clientes/", ClientesController.as_view(), name="clientes"),
     path("clientes/nuevo/", ClienteFormularioController.as_view(), name="cliente_nuevo"),
     path("clientes/<int:pk>/editar/", ClienteFormularioController.as_view(), name="cliente_editar"),
+    path("clientes/<int:pk>/acceso/", AccesoClienteController.as_view(), name="cliente_acceso"),
 ]

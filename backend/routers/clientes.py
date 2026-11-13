@@ -4,10 +4,11 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from database import get_db
+from seguridad import solo_encargado
 from models import Cliente
 from schemas import ClienteCreate, ClienteOut, ClienteUpdate
 
-router = APIRouter(prefix="/api/clientes", tags=["Clientes"])
+router = APIRouter(prefix="/api/clientes", tags=["Clientes"], dependencies=[Depends(solo_encargado)])
 
 
 @router.get("/", response_model=list[ClienteOut])

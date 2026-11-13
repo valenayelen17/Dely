@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import models  # noqa: F401
 from database import Base, crear_base_si_no_existe, engine
 from errores import registrar_manejadores
+from routers.auth import router as auth_router
 from routers.clientes import router as clientes_router
 from routers.comercios import router as comercios_router
 from routers.entregas import router as entregas_router
@@ -17,6 +18,7 @@ from routers.pedidos import router as pedidos_router
 from routers.productos import router as productos_router
 from routers.repartidores import router as repartidores_router
 from routers.seguimiento import router as seguimiento_router
+from routers.usuarios import router as usuarios_router
 
 
 @asynccontextmanager
@@ -42,6 +44,7 @@ app.add_middleware(
 )
 registrar_manejadores(app)
 
+app.include_router(auth_router)
 app.include_router(comercios_router)
 app.include_router(clientes_router)
 app.include_router(repartidores_router)
@@ -49,6 +52,7 @@ app.include_router(productos_router)
 app.include_router(pedidos_router)
 app.include_router(entregas_router)
 app.include_router(seguimiento_router)
+app.include_router(usuarios_router)
 
 
 @app.get("/", tags=["Inicio"])

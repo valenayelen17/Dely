@@ -17,7 +17,13 @@ class EstadoEntrega(StrEnum):
     CANCELADA = "Cancelada"
 
 
-PEDIDOS_ACTIVOS = frozenset({EstadoPedido.PENDIENTE, EstadoPedido.ASIGNADO, EstadoPedido.EN_CAMINO})
+class Rol(StrEnum):
+    ENCARGADO = "encargado"
+    REPARTIDOR = "repartidor"
+    CLIENTE = "cliente"
+
+
+PEDIDOS_ACTIVOS =frozenset({EstadoPedido.PENDIENTE, EstadoPedido.ASIGNADO, EstadoPedido.EN_CAMINO})
 PEDIDOS_FINALIZADOS = frozenset({EstadoPedido.ENTREGADO, EstadoPedido.CANCELADO})
 
 ENTREGAS_ACTIVAS = frozenset({EstadoEntrega.ASIGNADA, EstadoEntrega.EN_CAMINO, EstadoEntrega.LLEGANDO})

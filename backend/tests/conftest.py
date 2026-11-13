@@ -1,6 +1,8 @@
 import os
 
 os.environ["DATABASE_URL"] = "sqlite://"
+os.environ["JWT_SECRET"] = "clave-de-prueba-con-largo-suficiente-para-hs256"
+os.environ["BCRYPT_ROUNDS"] = "4"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
@@ -9,6 +11,10 @@ from sqlalchemy.orm import sessionmaker  # noqa: E402
 import models  # noqa: E402, F401
 from api import app  # noqa: E402
 from database import Base, crear_engine, get_db  # noqa: E402
+from estados import Rol  # noqa: E402
+from seguridad import hashear  # noqa: E402
+
+PASSWORD = "clave123"
 
 
 @pytest.fixture
@@ -25,9 +31,36 @@ def client():
             db.close()
 
     app.dependency_overrides[get_db] = get_db_de_prueba
-    yield TestClient(app)
+
+    with Sesion() as db:
+        db.add(models.Usuario(email="encargado@dely.com", password_hash=hashear(PASSWORD), rol=Rol.ENCARGADO))
+        db.commit()
+
+    # Por defecto los tests actúan como encargado; los de permisos arman sus propios clientes.
+    cliente_http = TestClient(app)
+    cliente_http.headers["Authorization"] = f"Bearer {iniciar_sesion(cliente_http, 'encargado@dely.com')}"
+    yield cliente_http
     app.dependency_overrides.clear()
     engine.dispose()
+
+
+def iniciar_sesion(cliente_http: TestClient, email: str, password: str = PASSWORD) -> str:
+    respuesta = cliente_http.post("/api/auth/login", json={"email": email, "password": password})
+    assert respuesta.status_code == 200, respuesta.text
+    return respuesta.json()["access_token"]
+
+
+@pytest.fixture
+def como():
+    """Devuelve un TestClient autenticado con el email dado (o sin token si email es None)."""
+
+    def _como(email: str | None) -> TestClient:
+        otro = TestClient(app)
+        if email is not None:
+            otro.headers["Authorization"] = f"Bearer {iniciar_sesion(otro, email)}"
+        return otro
+
+    return _como
 
 
 @pytest.fixture

@@ -3,12 +3,13 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from database import get_db
+from seguridad import solo_encargado
 from estados import PEDIDOS_ACTIVOS, EstadoPedido
 from models import Pedido
 from schemas import NotificacionOut, PedidoAsignacion, PedidoCreate, PedidoOut, PedidoUpdate
 from services import pedidos as servicio
 
-router = APIRouter(prefix="/api/pedidos", tags=["Pedidos"])
+router = APIRouter(prefix="/api/pedidos", tags=["Pedidos"], dependencies=[Depends(solo_encargado)])
 
 
 @router.get("/", response_model=list[PedidoOut])

@@ -1,10 +1,5 @@
 import { pedirApi } from './cliente'
-import type { Comercio, EntregaDetalle, EstadoEntrega, Repartidor, Seguimiento } from './tipos'
-
-function query(params: Record<string, string | number | boolean | undefined>): string {
-  const pares = Object.entries(params).filter(([, valor]) => valor !== undefined && valor !== '')
-  return pares.length ? `?${new URLSearchParams(pares.map(([k, v]) => [k, String(v)]))}` : ''
-}
+import type { EntregaDetalle, EstadoEntrega, Repartidor, RespuestaLogin, Seguimiento } from './tipos'
 
 const enviar = (method: string, body?: unknown): RequestInit => ({
   method,
@@ -12,25 +7,22 @@ const enviar = (method: string, body?: unknown): RequestInit => ({
 })
 
 // Endpoints que usan las vistas del repartidor y del cliente.
+// La API controla con el JWT que cada uno vea sólo lo suyo.
 export const api = {
-  comercios: () => pedirApi<Comercio[]>('/api/comercios/'),
+  login: (email: string, password: string) => pedirApi<RespuestaLogin>('/api/auth/login', enviar('POST', { email, password })),
 
-  repartidores: (filtros: { comercio_id?: number; zona?: string; disponible?: boolean } = {}) =>
-    pedirApi<Repartidor[]>(`/api/repartidores/${query({ ...filtros, limit: 500 })}`),
+  // Repartidor
   repartidor: (id: number) => pedirApi<Repartidor>(`/api/repartidores/${id}`),
-  entregasDeRepartidor: (id: number, activas = true) =>
-    pedirApi<EntregaDetalle[]>(`/api/repartidores/${id}/entregas${query({ activas })}`),
-
-  entregasActivas: () =>
-    pedirApi<EntregaDetalle[]>('/api/entregas/?limit=500').then((entregas) =>
-      entregas.filter((e) => ['Asignada', 'En camino', 'Llegando'].includes(e.estado)),
-    ),
+  entregasDeRepartidor: (id: number, activas: boolean) =>
+    pedirApi<EntregaDetalle[]>(`/api/repartidores/${id}/entregas?activas=${activas}`),
   entrega: (id: number) => pedirApi<EntregaDetalle>(`/api/entregas/${id}`),
   cambiarEstadoEntrega: (id: number, estado: EstadoEntrega, ubicacion_actual?: string) =>
     pedirApi<EntregaDetalle>(`/api/entregas/${id}/estado`, enviar('PATCH', { estado, ubicacion_actual })),
   informarUbicacion: (id: number, ubicacion_actual: string) =>
     pedirApi<EntregaDetalle>(`/api/entregas/${id}/ubicacion`, enviar('PATCH', { ubicacion_actual })),
 
+  // Cliente
+  misPedidos: () => pedirApi<Seguimiento[]>('/api/seguimiento/'),
   seguimiento: (codigo: string) => pedirApi<Seguimiento>(`/api/seguimiento/${encodeURIComponent(codigo)}`),
   marcarLeidas: (codigo: string) =>
     pedirApi<Seguimiento>(`/api/seguimiento/${encodeURIComponent(codigo)}/notificaciones/leidas`, enviar('PATCH')),

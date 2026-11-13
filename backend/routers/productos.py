@@ -3,11 +3,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from database import get_db
+from seguridad import solo_encargado
 from routers.comercios import buscar_comercio
 from models import Producto
 from schemas import ProductoCreate, ProductoOut, ProductoUpdate
 
-router = APIRouter(prefix="/api/productos", tags=["Productos"])
+router = APIRouter(prefix="/api/productos", tags=["Productos"], dependencies=[Depends(solo_encargado)])
 
 
 @router.get("/", response_model=list[ProductoOut])

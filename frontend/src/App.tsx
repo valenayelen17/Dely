@@ -1,25 +1,27 @@
-import { BrowserRouter, Route, Routes } from 'react-router'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
+import { ProveedorSesion, RedirigirSegunRol, RequiereRol } from './components/Sesion'
 import { ProveedorToasts } from './components/Toasts'
-import { Inicio } from './vistas/Inicio'
-import { IngresarCodigo } from './vistas/cliente/IngresarCodigo'
+import { Login } from './vistas/Login'
+import { MisPedidos } from './vistas/cliente/MisPedidos'
 import { Seguimiento } from './vistas/cliente/Seguimiento'
 import { DetalleEntrega } from './vistas/repartidor/DetalleEntrega'
 import { MisEntregas } from './vistas/repartidor/MisEntregas'
-import { QuienSos } from './vistas/repartidor/QuienSos'
 
 function App() {
   return (
     <ProveedorToasts>
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Inicio />} />
-          <Route path="/repartidor" element={<QuienSos />} />
-          <Route path="/repartidor/:repartidorId" element={<MisEntregas />} />
-          <Route path="/repartidor/:repartidorId/entregas/:entregaId" element={<DetalleEntrega />} />
-          <Route path="/seguimiento" element={<IngresarCodigo />} />
-          <Route path="/seguimiento/:codigo" element={<Seguimiento />} />
-          <Route path="*" element={<Inicio />} />
-        </Routes>
+        <ProveedorSesion>
+          <Routes>
+            <Route path="/" element={<RedirigirSegunRol />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/entregas" element={<RequiereRol rol="repartidor"><MisEntregas /></RequiereRol>} />
+            <Route path="/entregas/:entregaId" element={<RequiereRol rol="repartidor"><DetalleEntrega /></RequiereRol>} />
+            <Route path="/pedidos" element={<RequiereRol rol="cliente"><MisPedidos /></RequiereRol>} />
+            <Route path="/pedidos/:codigo" element={<RequiereRol rol="cliente"><Seguimiento /></RequiereRol>} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </ProveedorSesion>
       </BrowserRouter>
     </ProveedorToasts>
   )

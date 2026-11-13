@@ -4,10 +4,11 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from database import get_db
+from seguridad import solo_encargado
 from models import Comercio
 from schemas import ComercioCreate, ComercioOut, ComercioUpdate
 
-router = APIRouter(prefix="/api/comercios", tags=["Comercios"])
+router = APIRouter(prefix="/api/comercios", tags=["Comercios"], dependencies=[Depends(solo_encargado)])
 
 
 def buscar_comercio(db: Session, comercio_id: int) -> Comercio:

@@ -30,6 +30,35 @@ class FormularioDely(forms.Form):
         return datos
 
 
+class LoginForm(FormularioDely):
+    email = forms.EmailField(widget=forms.EmailInput(attrs={"autocomplete": "username", "autofocus": True, "placeholder": "Email"}))
+    password = forms.CharField(
+        label="Contraseña", max_length=72, widget=forms.PasswordInput(attrs={"autocomplete": "current-password", "placeholder": "Contraseña"})
+    )
+
+
+class AccesoForm(FormularioDely):
+    """Credenciales con las que un repartidor o un cliente entra a su aplicación."""
+
+    email = forms.EmailField(label="Email de acceso")
+    password = forms.CharField(
+        label="Contraseña",
+        min_length=6,
+        max_length=72,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
+        help_text="Mínimo 6 caracteres. Pasásela a la persona por un medio seguro.",
+    )
+    confirmar = forms.CharField(
+        label="Repetí la contraseña", max_length=72, widget=forms.PasswordInput(attrs={"autocomplete": "new-password"})
+    )
+
+    def clean(self):
+        datos = super().clean()
+        if datos.get("password") and datos.get("password") != datos.get("confirmar"):
+            self.add_error("confirmar", "Las contraseñas no coinciden.")
+        return datos
+
+
 class ClienteForm(FormularioDely):
     nombre = forms.CharField(min_length=2, max_length=100)
     apellido = forms.CharField(min_length=2, max_length=100)

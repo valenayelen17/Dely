@@ -1,29 +1,34 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useParams } from 'react-router'
+import { useParams } from 'react-router'
 import { api } from '../../api/dely'
 import type { EstadoEntrega } from '../../api/tipos'
 import { BadgeEstado } from '../../components/BadgeEstado'
 import { ErrorCarga, Esqueleto } from '../../components/Estados'
 import { Icono } from '../../components/Icono'
+import { Encabezado, Layout } from '../../components/Layout'
 import { Pasos } from '../../components/Pasos'
 import { useApi } from '../../hooks/useApi'
 import { useToasts } from '../../hooks/useToasts'
 import { SIGUIENTE_ENTREGA } from '../../lib/estados'
 import { hora, moneda, nombreCompleto } from '../../lib/formato'
-import { BarraSuperior } from './BarraSuperior'
 
 const PASOS: EstadoEntrega[] = ['Asignada', 'En camino', 'Llegando', 'Entregada']
+const VOLVER = { a: '/entregas', texto: 'Mis entregas' }
 
 const ACCION: Partial<Record<EstadoEntrega, { texto: string; clase: string; ayuda: (cliente: string) => string }>> = {
   Asignada: { texto: 'Salir a entregar', clase: 'btn-primary', ayuda: (c) => `Pasa a En camino. ${c} ve que saliste.` },
   'En camino': { texto: 'Estoy llegando', clase: 'btn-arrive', ayuda: (c) => `Pasa a Llegando y le avisa a ${c}.` },
-  Llegando: { texto: 'Entregado', clase: 'btn-success', ayuda: () => 'Te pedimos confirmación antes de cerrar.' },
+  Llegando: { texto: 'Marcar como entregado', clase: 'btn-success', ayuda: () => 'Te pedimos confirmación antes de cerrar.' },
+}
+
+const AVISO: Partial<Record<EstadoEntrega, string>> = {
+  'En camino': 'Saliste a entregar',
+  Llegando: 'Le avisamos al cliente que estás llegando',
+  Entregada: 'Entrega cerrada',
 }
 
 export function DetalleEntrega() {
-  const params = useParams()
-  const repartidorId = Number(params.repartidorId)
-  const entregaId = Number(params.entregaId)
+  const entregaId = Number(useParams().entregaId)
   const toasts = useToasts()
   const entrega = useApi(() => api.entrega(entregaId), `ent-${entregaId}`, 5000)
   const [ubicacion, setUbicacion] = useState('')
@@ -31,7 +36,6 @@ export function DetalleEntrega() {
   const [enviando, setEnviando] = useState(false)
 
   const e = entrega.datos
-  const volver = `/repartidor/${repartidorId}`
 
   const avanzar = async (estado: EstadoEntrega) => {
     setEnviando(true)
@@ -40,6 +44,7 @@ export function DetalleEntrega() {
       setConfirmando(false)
       setUbicacion('')
       await entrega.recargar()
+      toasts.exito(AVISO[estado] ?? 'Entrega actualizada')
     } catch (error) {
       toasts.error(error, 'No se pudo actualizar la entrega')
     } finally {
@@ -62,12 +67,10 @@ export function DetalleEntrega() {
 
   if (!e) {
     return (
-      <div className="dely phone">
-        <BarraSuperior volverA={volver} etiquetaVolver="Volver a mis entregas"><b>Entrega</b></BarraSuperior>
-        <div className="m-body">
-          {entrega.error ? <ErrorCarga error={entrega.error} reintentar={entrega.recargar} /> : <Esqueleto filas={3} alto={140} />}
-        </div>
-      </div>
+      <Layout>
+        <Encabezado titulo="Entrega" volver={VOLVER} />
+        {entrega.error ? <ErrorCarga error={entrega.error} reintentar={entrega.recargar} /> : <Esqueleto filas={2} alto={180} />}
+      </Layout>
     )
   }
 
@@ -79,119 +82,124 @@ export function DetalleEntrega() {
   const indice = e.estado === 'Entregada' ? PASOS.length : PASOS.indexOf(e.estado)
 
   return (
-    <div className="dely phone" style={{ position: 'relative' }}>
-      <BarraSuperior volverA={volver} etiquetaVolver="Volver a mis entregas">
-        <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.3, flexGrow: 1 }}>
-          <b>Entrega a {cliente}</b>
-          <span className="code muted" style={{ fontSize: 12 }}>{pedido.codigo_seguimiento}</span>
-        </span>
-        <BadgeEstado estado={e.estado} grande />
-      </BarraSuperior>
+    <Layout>
+      <Encabezado
+        volver={VOLVER}
+        titulo={<span className="row" style={{ gap: 14, flexWrap: 'wrap' }}>Entrega a {nombreCompleto(pedido.cliente)} <BadgeEstado estado={e.estado} grande /></span>}
+        bajada={<>Pedido <span className="code">{pedido.codigo_seguimiento}</span> · llega {hora(pedido.horario_estimado)}</>}
+      />
 
-      <div className="m-body" style={{ flexGrow: 1 }}>
-        {e.estado !== 'Cancelada' && <Pasos etiquetas={PASOS} actual={indice} indiceLlegando={2} etiquetaAccesible="Progreso de la entrega" />}
+      <div className="dos-columnas">
+        <div className="columna">
+          {e.estado !== 'Cancelada' && (
+            <section className="seccion">
+              <h2 className="seccion-titulo">Recorrido</h2>
+              <Pasos etiquetas={PASOS} actual={indice} indiceLlegando={2} etiquetaAccesible="Progreso de la entrega" />
+            </section>
+          )}
 
-        <section className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <span className="overline">Llevalo a</span>
-          <span style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.2, letterSpacing: '-0.01em' }}>{pedido.direccion_entrega}</span>
-          <div className="row muted" style={{ fontSize: 14, gap: 10 }}>
-            <span className="tag tag-zone">{pedido.zona}</span>
-            <span className="row" style={{ gap: 4 }}><Icono nombre="reloj" />Llega {hora(pedido.horario_estimado)}</span>
-          </div>
-          <hr className="divider" />
-          <div className="between">
-            <span style={{ display: 'flex', flexDirection: 'column' }}>
-              <b>{nombreCompleto(pedido.cliente)}</b>
-              <span className="muted" style={{ fontSize: 14 }}>{pedido.cliente.telefono}</span>
-            </span>
-            <a className="btn btn-secondary" href={`tel:${pedido.cliente.telefono}`} style={{ minHeight: 48 }}>
-              <Icono nombre="telefono" />
-              Llamar
-            </a>
-          </div>
-        </section>
+          <section className="seccion">
+            <h2 className="seccion-titulo"><Icono nombre="pin" tamano="lg" /> Destino</h2>
+            <span style={{ fontSize: 28, fontWeight: 800, lineHeight: 1.2, letterSpacing: '-0.01em' }}>{pedido.direccion_entrega}</span>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16 }}>
+              <div className="dato"><span className="overline">Zona</span><span>{pedido.zona}</span></div>
+              <div className="dato"><span className="overline">Horario estimado</span><span>{hora(pedido.horario_estimado)}</span></div>
+              <div className="dato"><span className="overline">Cliente</span><span>{nombreCompleto(pedido.cliente)}</span></div>
+              <div className="dato"><span className="overline">Teléfono</span><a href={`tel:${pedido.cliente.telefono}`}>{pedido.cliente.telefono}</a></div>
+            </div>
+            {e.ubicacion_actual && enRecorrido && (
+              <span className="row muted" style={{ gap: 6 }}><Icono nombre="camion" />Última ubicación informada: {e.ubicacion_actual}</span>
+            )}
+          </section>
 
-        {enRecorrido && (
-          <form className="card" onSubmit={informar} style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div className="field">
-              <label className="label" htmlFor="de-ub">¿Por dónde vas?</label>
-              <div className="row" style={{ gap: 8 }}>
-                <input id="de-ub" className="input" value={ubicacion} onChange={(ev) => setUbicacion(ev.target.value)} placeholder={e.ubicacion_actual ?? 'Ej.: Av. Callao 200'} style={{ height: 48 }} />
-                <button className="btn btn-secondary" style={{ minHeight: 48 }} disabled={!ubicacion.trim()}>Informar</button>
+          <section className="seccion" style={{ padding: 0, gap: 0 }}>
+            <h2 className="seccion-titulo" style={{ padding: '20px 24px 12px' }}><Icono nombre="caja" tamano="lg" /> Productos</h2>
+            <table className="table" style={{ minWidth: 0 }}>
+              <thead><tr><th>Producto</th><th className="r">Cantidad</th><th className="r">Unitario</th><th className="r">Subtotal</th></tr></thead>
+              <tbody>
+                {pedido.detalles.map((d) => (
+                  <tr key={d.id_detalle}>
+                    <td>{d.producto_nombre}</td>
+                    <td className="r">{d.cantidad}</td>
+                    <td className="r">{moneda(d.precio_unitario)}</td>
+                    <td className="r">{moneda(d.subtotal)}</td>
+                  </tr>
+                ))}
+                <tr>
+                  <td colSpan={3}><b>A cobrar</b></td>
+                  <td className="r"><b style={{ fontSize: 20 }}>{moneda(pedido.total)}</b></td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        </div>
+
+        <aside className="columna columna-fija">
+          <section className="seccion">
+            <h2 className="seccion-titulo">Próximo paso</h2>
+            {e.estado === 'Llegando' && (
+              <div className="inline-alert inline-alert-warn" role="status">
+                <Icono nombre="campana" tamano="lg" />
+                <span>Le avisamos a {cliente} que estás llegando.</span>
               </div>
-              <span className="hint">
-                {cliente} ve este texto en su seguimiento.{e.ubicacion_actual && ` Última: ${e.ubicacion_actual}.`}
-              </span>
-            </div>
-          </form>
-        )}
+            )}
+            {e.estado === 'Entregada' && (
+              <div className="inline-alert" style={{ background: 'var(--st-entregado-bg)', color: '#14532D' }} role="status">
+                <Icono nombre="check-circulo" tamano="lg" />
+                <span><b>Entregado a las {hora(e.hora_entrega)}.</b> No hay más pasos.</span>
+              </div>
+            )}
+            {e.estado === 'Cancelada' && (
+              <div className="inline-alert inline-alert-error" role="status">
+                <Icono nombre="x-circulo" tamano="lg" />
+                <span><b>El comercio canceló este pedido.</b> No hace falta que lo entregues.</span>
+              </div>
+            )}
+            {siguiente && accion && (
+              <>
+                <button
+                  className={`btn btn-lg ${accion.clase}`}
+                  style={{ width: '100%', minHeight: 56 }}
+                  disabled={enviando}
+                  onClick={() => (siguiente === 'Entregada' ? setConfirmando(true) : void avanzar(siguiente))}
+                >
+                  {enviando && <span className="spinner" />}
+                  {accion.texto}
+                </button>
+                <span className="hint">{accion.ayuda(cliente)}</span>
+              </>
+            )}
+          </section>
 
-        {e.estado === 'Llegando' && (
-          <div className="inline-alert inline-alert-warn" role="status">
-            <Icono nombre="campana" tamano="lg" />
-            <span>Le avisamos a {cliente} que estás llegando.</span>
-          </div>
-        )}
-        {e.estado === 'Entregada' && (
-          <div className="inline-alert" style={{ background: 'var(--st-entregado-bg)', color: '#14532D' }} role="status">
-            <Icono nombre="check-circulo" tamano="lg" />
-            <span><b>Entregado a las {hora(e.hora_entrega)}.</b> Volvé a Mis entregas para ver la próxima.</span>
-          </div>
-        )}
-        {e.estado === 'Cancelada' && (
-          <div className="inline-alert inline-alert-error" role="status">
-            <Icono nombre="x-circulo" tamano="lg" />
-            <span><b>El comercio canceló este pedido.</b> No hace falta que lo entregues.</span>
-          </div>
-        )}
-
-        <section className="card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8, fontSize: 15 }}>
-          <span className="overline">Productos</span>
-          {pedido.detalles.map((d) => (
-            <div key={d.id_detalle} className="between">
-              <span>{d.cantidad} × {d.producto_nombre}</span>
-              <span>{moneda(d.subtotal)}</span>
-            </div>
-          ))}
-          <hr className="divider" />
-          <div className="between"><b>A cobrar</b><b style={{ fontSize: 24 }}>{moneda(pedido.total)}</b></div>
-        </section>
-      </div>
-
-      <div className="bottom-bar">
-        {siguiente && accion ? (
-          <>
-            <button
-              className={`btn btn-xl ${accion.clase}`}
-              disabled={enviando}
-              onClick={() => (siguiente === 'Entregada' ? setConfirmando(true) : void avanzar(siguiente))}
-            >
-              {enviando && <span className="spinner" />}
-              {accion.texto}
-            </button>
-            <span className="hint" style={{ textAlign: 'center' }}>{accion.ayuda(cliente)}</span>
-          </>
-        ) : (
-          <Link className="btn btn-secondary btn-xl" to={volver}>Volver a mis entregas</Link>
-        )}
+          {enRecorrido && (
+            <form className="seccion" onSubmit={informar}>
+              <h2 className="seccion-titulo">¿Por dónde vas?</h2>
+              <input className="input" aria-label="Ubicación actual" value={ubicacion} onChange={(ev) => setUbicacion(ev.target.value)} placeholder={e.ubicacion_actual ?? 'Ej.: Av. Callao 200'} />
+              <button className="btn btn-secondary" disabled={!ubicacion.trim()}>Informar ubicación</button>
+              <span className="hint">{cliente} ve este texto en su seguimiento.</span>
+            </form>
+          )}
+        </aside>
       </div>
 
       {confirmando && (
         <div className="overlay" onKeyDown={(ev) => ev.key === 'Escape' && setConfirmando(false)}>
           <div className="scrim" onClick={() => setConfirmando(false)} />
-          <div className="hoja-inferior dely" role="dialog" aria-modal="true" aria-labelledby="de-cf">
+          <div className="modal dely" role="dialog" aria-modal="true" aria-labelledby="de-cf">
             <h2 id="de-cf" style={{ fontSize: 21, fontWeight: 700 }}>¿Confirmás la entrega?</h2>
             <p className="muted">
               Vas a marcar el pedido de {cliente} como entregado y cobrado ({moneda(pedido.total)}). No se puede deshacer.
             </p>
-            <button className="btn btn-success btn-xl" disabled={enviando} onClick={() => void avanzar('Entregada')} autoFocus>
-              {enviando && <span className="spinner" />}
-              Sí, lo entregué
-            </button>
-            <button className="btn btn-ghost btn-lg" onClick={() => setConfirmando(false)}>Todavía no</button>
+            <div className="row" style={{ justifyContent: 'flex-end', gap: 8 }}>
+              <button className="btn btn-ghost" onClick={() => setConfirmando(false)}>Todavía no</button>
+              <button className="btn btn-success" disabled={enviando} onClick={() => void avanzar('Entregada')} autoFocus>
+                {enviando && <span className="spinner" />}
+                Sí, lo entregué
+              </button>
+            </div>
           </div>
         </div>
       )}
-    </div>
+    </Layout>
   )
 }

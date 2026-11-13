@@ -61,4 +61,6 @@ def obtener(diccionario, clave):
     """Acceso a un diccionario con clave variable: {{ datos.cantidades|obtener:id }}"""
     if not isinstance(diccionario, dict):
         return ""
+    if clave in diccionario:
+        return diccionario[clave]
     return diccionario.get(str(clave), "")

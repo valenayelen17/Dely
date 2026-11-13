@@ -3,9 +3,10 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import Repartidor
+from models import Repartidor, Usuario
 from routers.comercios import buscar_comercio
 from schemas import EntregaDetalle, RepartidorCreate, RepartidorDisponibilidad, RepartidorOut, RepartidorUpdate
+from seguridad import puede_ver_repartidor, solo_encargado, usuario_actual
 from services import entregas as servicio_entregas
 
 router = APIRouter(prefix="/api/repartidores", tags=["Repartidores"])
@@ -18,7 +19,7 @@ def buscar_repartidor(db: Session, repartidor_id: int) -> Repartidor:
     return repartidor
 
 
-@router.get("/", response_model=list[RepartidorOut])
+@router.get("/", response_model=list[RepartidorOut], dependencies=[Depends(solo_encargado)])
 def listar_repartidores(
     comercio_id: int | None = None,
     zona: str | None = None,
@@ -37,16 +38,25 @@ def listar_repartidores(
 
 
 @router.get("/{repartidor_id}", response_model=RepartidorOut)
-def obtener_repartidor(repartidor_id: int, db: Session = Depends(get_db)):
+def obtener_repartidor(
+    repartidor_id: int, db: Session = Depends(get_db), usuario: Usuario = Depends(usuario_actual)
+):
+    puede_ver_repartidor(usuario, repartidor_id)
     return buscar_repartidor(db, repartidor_id)
 
 
 @router.get("/{repartidor_id}/entregas", response_model=list[EntregaDetalle])
-def entregas_del_repartidor(repartidor_id: int, activas: bool = True, db: Session = Depends(get_db)):
+def entregas_del_repartidor(
+    repartidor_id: int,
+    activas: bool = True,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(usuario_actual),
+):
+    puede_ver_repartidor(usuario, repartidor_id)
     return servicio_entregas.entregas_de_repartidor(db, repartidor_id, activas)
 
 
-@router.post("/", response_model=RepartidorOut, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=RepartidorOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(solo_encargado)])
 def crear_repartidor(datos: RepartidorCreate, db: Session = Depends(get_db)):
     buscar_comercio(db, datos.comercio_id)
     repartidor = Repartidor(**datos.model_dump())
@@ -56,7 +66,7 @@ def crear_repartidor(datos: RepartidorCreate, db: Session = Depends(get_db)):
     return repartidor
 
 
-@router.put("/{repartidor_id}", response_model=RepartidorOut)
+@router.put("/{repartidor_id}", response_model=RepartidorOut, dependencies=[Depends(solo_encargado)])
 def actualizar_repartidor(repartidor_id: int, datos: RepartidorUpdate, db: Session = Depends(get_db)):
     repartidor = buscar_repartidor(db, repartidor_id)
     buscar_comercio(db, datos.comercio_id)
@@ -67,7 +77,7 @@ def actualizar_repartidor(repartidor_id: int, datos: RepartidorUpdate, db: Sessi
     return repartidor
 
 
-@router.patch("/{repartidor_id}/disponibilidad", response_model=RepartidorOut)
+@router.patch("/{repartidor_id}/disponibilidad", response_model=RepartidorOut, dependencies=[Depends(solo_encargado)])
 def cambiar_disponibilidad(
     repartidor_id: int, datos: RepartidorDisponibilidad, db: Session = Depends(get_db)
 ):
@@ -78,7 +88,7 @@ def cambiar_disponibilidad(
     return repartidor
 
 
-@router.delete("/{repartidor_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{repartidor_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(solo_encargado)])
 def eliminar_repartidor(repartidor_id: int, db: Session = Depends(get_db)):
     repartidor = buscar_repartidor(db, repartidor_id)
     if repartidor.entregas:

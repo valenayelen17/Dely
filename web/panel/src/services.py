@@ -4,10 +4,25 @@ Es la capa de Modelo del panel: los controladores nunca arman URLs ni hacen
 requests directamente, sólo llaman a estas funciones.
 """
 
+from contextlib import contextmanager
+from contextvars import ContextVar
+
 import requests
 from django.conf import settings
 
 TIMEOUT = 10
+
+# JWT del encargado logueado. Lo carga TokenApiMiddleware desde la sesión en cada request.
+_token: ContextVar[str | None] = ContextVar("token_api", default=None)
+
+
+@contextmanager
+def usando_token(token: str | None):
+    marca = _token.set(token)
+    try:
+        yield
+    finally:
+        _token.reset(marca)
 
 
 class ErrorApi(Exception):
@@ -36,6 +51,9 @@ def _mensaje_de_error(respuesta: requests.Response) -> str:
 
 
 def _pedir(metodo: str, ruta: str, **kwargs):
+    token = _token.get()
+    if token:
+        kwargs["headers"] = {**kwargs.get("headers", {}), "Authorization": f"Bearer {token}"}
     try:
         respuesta = requests.request(metodo, _url(ruta), timeout=TIMEOUT, **kwargs)
     except requests.exceptions.RequestException as error:
@@ -45,6 +63,23 @@ def _pedir(metodo: str, ruta: str, **kwargs):
     if respuesta.status_code == 204 or not respuesta.content:
         return None
     return respuesta.json()
+
+
+# --- Autenticación ------------------------------------------------------------
+
+def login(email: str, password: str) -> dict:
+    """Devuelve {access_token, expira, usuario} o lanza ErrorApi (401 si las credenciales no son válidas)."""
+    return _pedir("POST", "auth/login", json={"email": email, "password": password})
+
+
+def listar_usuarios(rol: str) -> list[dict]:
+    return _pedir("GET", "usuarios/", params={"rol": rol})
+
+
+def dar_acceso(rol: str, id_persona: int, email: str, password: str) -> dict:
+    """Crea o actualiza las credenciales de un repartidor o un cliente."""
+    recurso = {"repartidor": "repartidores", "cliente": "clientes"}[rol]
+    return _pedir("PUT", f"usuarios/{recurso}/{id_persona}/acceso", json={"email": email, "password": password})
 
 
 # --- Comercio -----------------------------------------------------------------
