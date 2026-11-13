@@ -154,6 +154,38 @@ class Entrega(Base):
     repartidor: Mapped[Repartidor] = relationship(back_populates="entregas")
 
 
+class Usuario(Base):
+    """Cuenta de acceso. Un repartidor o un cliente tienen, como mucho, una cuenta cada uno."""
+
+    __tablename__ = "usuarios"
+
+    id_usuario: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    rol: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
+    activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    comercio_id: Mapped[int | None] = mapped_column(
+        ForeignKey("comercios.id_comercio", ondelete="CASCADE"), nullable=True
+    )
+    repartidor_id: Mapped[int | None] = mapped_column(
+        ForeignKey("repartidores.id_repartidor", ondelete="CASCADE"), unique=True, nullable=True
+    )
+    cliente_id: Mapped[int | None] = mapped_column(
+        ForeignKey("clientes.id_cliente", ondelete="CASCADE"), unique=True, nullable=True
+    )
+
+    repartidor: Mapped["Repartidor | None"] = relationship()
+    cliente: Mapped["Cliente | None"] = relationship()
+
+    @property
+    def nombre(self) -> str:
+        if self.repartidor is not None:
+            return f"{self.repartidor.nombre} {self.repartidor.apellido}"
+        if self.cliente is not None:
+            return f"{self.cliente.nombre} {self.cliente.apellido}"
+        return "Encargado"
+
+
 class Notificacion(Base):
     __tablename__ = "notificaciones"
 

@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-from estados import EstadoEntrega, EstadoPedido
+from estados import EstadoEntrega, EstadoPedido, Rol
 
 
 class Schema(BaseModel):
@@ -225,3 +225,34 @@ class SeguimientoOut(Schema):
     productos: list[ProductoSeguimiento]
     total: Decimal
     notificaciones: list[NotificacionOut]
+
+
+# --- Autenticación -------------------------------------------------------------
+
+class LoginIn(Schema):
+    email: EmailStr
+    # bcrypt sólo usa los primeros 72 bytes de la contraseña.
+    password: str = Field(min_length=1, max_length=72)
+
+
+class UsuarioOut(Schema):
+    id_usuario: int
+    email: EmailStr
+    rol: Rol
+    nombre: str
+    repartidor_id: int | None
+    cliente_id: int | None
+
+
+class TokenOut(Schema):
+    access_token: str
+    token_type: str = "bearer"
+    expira: datetime
+    usuario: UsuarioOut
+
+
+class AccesoIn(Schema):
+    """Credenciales que el encargado le asigna a un repartidor o a un cliente."""
+
+    email: EmailStr
+    password: str = Field(min_length=6, max_length=72)
