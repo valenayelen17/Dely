@@ -47,7 +47,7 @@ Los tests usan una base SQLite en memoria y no tocan MySQL. Corren autenticados 
 | Repartidor | `GET /api/repartidores/{su id}`, `GET /api/repartidores/{su id}/entregas`, y `GET` / `PATCH` de **sus** entregas |
 | Cliente | `GET /api/seguimiento/` (sus pedidos), `GET /api/seguimiento/{codigo}` y marcar leídas, sólo de **sus** pedidos |
 
-Sin token o con un token vencido o inválido la respuesta es 401, y con un rol sin permiso es 403. El código de seguimiento de otro cliente devuelve 404, así no se revela que existe. `seguridad.py` concentra el hash de contraseñas (bcrypt), la creación y validación de tokens y las dependencias de FastAPI que exigen un rol.
+Sin token o con un token vencido o inválido la respuesta es 401, y con un rol sin permiso es 403. El token lleva una huella de la contraseña: si el encargado la cambia, los tokens anteriores dejan de valer. Tras 5 logins fallidos seguidos el email queda bloqueado 15 minutos (429 con `Retry-After`); el límite se lleva en memoria y se configura con `LOGIN_MAX_INTENTOS` y `LOGIN_BLOQUEO_MINUTOS`. El código de seguimiento de otro cliente devuelve 404, así no se revela que existe. `seguridad.py` concentra el hash de contraseñas (bcrypt), la creación y validación de tokens y las dependencias de FastAPI que exigen un rol.
 
 ## Arquitectura (MVC)
 
@@ -68,7 +68,7 @@ Sin token o con un token vencido o inválido la respuesta es 401, y con un rol s
 | Login | `/api/auth/login` | POST (público) |
 | Usuario actual | `/api/auth/yo` | GET |
 | Accesos | `/api/usuarios/?rol=` | GET |
-| Dar acceso | `/api/usuarios/repartidores/{id}/acceso`, `/api/usuarios/clientes/{id}/acceso` | PUT (crea la cuenta o cambia la contraseña) |
+| Dar o quitar acceso | `/api/usuarios/repartidores/{id}/acceso`, `/api/usuarios/clientes/{id}/acceso` | PUT (crea la cuenta o cambia la contraseña), DELETE (la desactiva) |
 | Comercios | `/api/comercios/` | GET, POST, GET por id, PUT, DELETE |
 | Clientes | `/api/clientes/` | GET, POST, GET por id, PUT, DELETE |
 | Productos | `/api/productos/?comercio_id=&categoria=` | GET, POST, GET por id, PUT, DELETE |
@@ -102,6 +102,9 @@ Entrega:  Asignada → En camino → Llegando → Entregada
 - El repartidor avanza la entrega sin saltear estados y el pedido se actualiza solo.
 - Al pasar a **Entregada** se registran la fecha y la hora reales de la entrega.
 - Cancelar devuelve el stock. No se cancelan pedidos ya entregados.
+- Un repartidor con entregas activas no puede salir de turno, cambiar de zona ni de comercio.
+- El pedido sólo se crea en una zona que cubra algún repartidor del comercio, con fecha entre hoy y 7 días.
+- Las validaciones de formato (nombres, teléfonos, emails en minúsculas, contraseñas) están en `schemas.py`; las de unicidad (teléfono de repartidor, nombre de producto por comercio) en los routers.
 - Sólo se editan pedidos **Pendientes**, y sólo se eliminan los Pendientes o Cancelados.
 
 ## Flujo de un pedido
