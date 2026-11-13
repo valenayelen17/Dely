@@ -33,7 +33,7 @@ def test_no_elimina_pedidos_entregados(client, base, crear_pedido):
     entrega = client.patch(
         f"/api/pedidos/{pedido['id_pedido']}/asignar", json={"repartidor_id": base["repartidor_centro"]["id_repartidor"]}
     ).json()["entrega"]
-    for estado in ("En camino", "Entregada"):
+    for estado in ("En camino", "Llegando", "Entregada"):
         client.patch(f"/api/entregas/{entrega['id_entrega']}/estado", json={"estado": estado})
 
     assert client.delete(f"/api/pedidos/{pedido['id_pedido']}").status_code == 409
